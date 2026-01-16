@@ -1,8 +1,8 @@
-# FriendlyMeals – Firebase Fundamentals Android Samples
+# FriendlyMeals – Firebase Android Samples
 
-Welcome to **FriendlyMeals**, a sample Android project accompanying the [Firebase Fundamentals video series](https://www.youtube.com/playlist?list=PLl-K7zZEsYLnfwBe4WgEw9ao0J0N1LYDR) on YouTube.
+Welcome to **FriendlyMeals**, an app that demonstrates how to integrate Firebase features into an Android app.
 
-This repository demonstrates how to integrate Firebase features into an Android app, with a current focus on **Firebase AI Logic**. As the video series progresses, we will add more examples covering additional Firebase services and best practices for Android development.
+<img width="818" height="524" alt="hero-art" src="https://github.com/user-attachments/assets/eebe4219-0605-460d-985f-69358b727ed2" />
 
 ## 📺 Video Series
 
@@ -11,31 +11,35 @@ This repository demonstrates how to integrate Firebase features into an Android 
 ## 🚀 Features
 
 - **Firebase AI Logic**: Learn how build AI-powered features to enhance your app's functionality.
-- **Modular Structure**: The project is organized by feature, making it easy to follow along and extend.
-- **Upcoming**: More Firebase features (such as Authentication, Firestore, Storage, and more) will be added soon!
+- **Firestore Enterprise edition**: Learn how to store data in Firestore Enterprise edition and build Pipeline queries.
+- **Firebase Authentication**: Learn how to keep your user's data safe with Firebase Authentication.
+- **Cloud Storage**: Learn how to store images in Cloud Storage, and how to display them in a Jetpack Compose UI.
+- **Remote Config**: Learn how to change the behavior and appearance of your app remotely with Remote Config.
+- **Upcoming**: More Firebase features will be added soon!
 
 ## 🛠️ Getting Started
 
 1. **Clone this repository**
    ```sh
-   git clone https://github.com/FirebaseExtended/firebase-video-samples
+   git clone https://github.com/FirebaseExtended/FriendlyMeals-Android.git
    ```
 1. **Open the project**
-   - Open `firebase-ai-friendly-meals/android` in Android Studio.
+   - Open `FriendlyMeals-Android` in Android Studio.
 
 ## 🔥 Setting Up Firebase
 
 1. **Create a Firebase Project**
-   1. Sign into the [Firebase console](https://console.firebase.google.com/).
-   1. Click the button to create a new Firebase project, and follow the on-screen workflow. Google Analytics is *not* required for this app.
+   - Sign into the [Firebase console](https://console.firebase.google.com/).
+   - Click the button to create a new Firebase project, and follow the on-screen workflow.
+   - Enable the products listed in the 'Features' section by navigating to the corresponding area of the console.
 
 1. **Register the Android App**
-   1.  Click **Add app** > **Android**.
-   1.  Follow the on-screen workflow.  You can enter the package name: `com.google.firebase.example.friendlymeals`
-   1.  Click **Register app**.
+   -  Click **Add app** > **Android**.
+   -  Follow the on-screen workflow.  You can enter the package name: `com.google.firebase.example.friendlymeals`
+   -  Click **Register app**.
 
 1. During the "Add app" workflow, **download the `google-services.json` file**.
-   - Move this file into this directory of the app: `firebase-ai-friendly-meals/android/app`.
+   - Move this file into this directory of the app: `FriendlyMeals-Android/app`.
    - If you didn't download this file during the "Add app" workflow, you can always [obtain it later](https://support.google.com/firebase/answer/7015592).
 
 1. **Run the app**
