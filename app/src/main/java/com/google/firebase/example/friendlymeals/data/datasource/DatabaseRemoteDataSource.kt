@@ -30,46 +30,19 @@ class DatabaseRemoteDataSource @Inject constructor(
     }
 
     suspend fun addRecipe(recipe: Recipe): String {
-        val recipeRef = firestore.collection(RECIPES_COLLECTION).add(recipe).await()
-        return recipeRef.id
+        return ""
     }
 
     suspend fun getRecipe(recipeId: String): Recipe {
-        val recipePath = "${RECIPES_COLLECTION}/${recipeId}"
-
-        return firestore
-            .pipeline()
-            .documents(recipePath)
-            .execute().await().results.toRecipe()
+        return Recipe()
     }
 
     suspend fun getAllRecipes(): List<RecipeListItem> {
-        return firestore
-            .pipeline()
-            .collection(RECIPES_COLLECTION)
-            .execute().await().results.toRecipeListItem()
+        return listOf()
     }
 
     suspend fun addTags(tagNames: List<String>) {
-        val normalizedTags = tagNames
-            .map { it.trim() }
-            .distinct()
 
-        val batch = firestore.batch()
-        val tagsCollection = firestore.collection(TAGS_COLLECTION)
-
-        normalizedTags.forEach { tagName ->
-            val tagRef = tagsCollection.document(tagName)
-
-            val data = hashMapOf(
-                NAME_FIELD to tagName,
-                TOTAL_RECIPES_FIELD to FieldValue.increment(1)
-            )
-
-            batch.set(tagRef, data, SetOptions.merge())
-        }
-
-        batch.commit().await()
     }
 
     suspend fun getPopularTags(): List<Tag> {
@@ -119,21 +92,7 @@ class DatabaseRemoteDataSource @Inject constructor(
     }
 
     private suspend fun getAverageRatingForRecipe(recipeId: String): Double {
-        val collectionPath = "${RECIPES_COLLECTION}/${recipeId}/${REVIEWS_SUBCOLLECTION}"
-
-        val results = firestore
-            .pipeline()
-            .collection(collectionPath)
-            .aggregate(
-                AggregateStage.withAccumulators(
-                    AggregateFunction
-                        .average(RATING_FIELD)
-                        .alias(AVG_RATING_ALIAS)
-                )
-            ).execute().await().results
-
-        val itemData = results.first().getData()
-        return (itemData[AVG_RATING_ALIAS] as? Number)?.toDouble() ?: 0.0
+        return 0.0
     }
 
     suspend fun getRating(userId: String, recipeId: String): Int {
@@ -199,53 +158,7 @@ class DatabaseRemoteDataSource @Inject constructor(
         filterOptions: FilterOptions,
         userId: String
     ): List<RecipeListItem> {
-        var pipeline = firestore.pipeline().collection(RECIPES_COLLECTION)
-
-        if (filterOptions.recipeTitle.isNotBlank()) {
-            pipeline = pipeline
-                .where(
-                    field(TITLE_FIELD).toLower()
-                        .stringContains(filterOptions.recipeTitle.lowercase())
-                )
-        }
-
-        if (filterOptions.filterByMine) {
-            pipeline = pipeline
-                .where(field(AUTHOR_ID_FIELD)
-                    .equal(userId))
-        }
-
-        if (filterOptions.rating > 0) {
-            pipeline = pipeline
-                .where(field(AVERAGE_RATING_FIELD)
-                    .greaterThanOrEqual(filterOptions.rating))
-        }
-
-        if (filterOptions.selectedTags.isNotEmpty()) {
-            pipeline = pipeline
-                .where(field(TAGS_FIELD)
-                    .arrayContainsAny(filterOptions.selectedTags))
-        }
-
-        when (filterOptions.sortBy) {
-            SortByFilter.RATING -> {
-                pipeline = pipeline
-                    .sort(field(AVERAGE_RATING_FIELD)
-                        .descending())
-            }
-            SortByFilter.ALPHABETICAL -> {
-                pipeline = pipeline
-                    .sort(field(TITLE_FIELD)
-                        .ascending())
-            }
-            SortByFilter.POPULARITY -> {
-                pipeline = pipeline
-                    .sort(field(LIKES_FIELD)
-                        .descending())
-            }
-        }
-
-        return pipeline.execute().await().results.toRecipeListItem()
+        return listOf()
     }
 
     private fun List<PipelineResult>.toRecipe(): Recipe {
