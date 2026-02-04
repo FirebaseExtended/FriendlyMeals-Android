@@ -8,6 +8,7 @@ import com.google.firebase.example.friendlymeals.data.repository.AuthRepository
 import com.google.firebase.example.friendlymeals.data.repository.DatabaseRepository
 import com.google.firebase.example.friendlymeals.data.repository.StorageRepository
 import com.google.firebase.example.friendlymeals.data.schema.RecipeSchema
+import com.google.firebase.example.friendlymeals.ui.shared.toBase64
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -61,7 +62,7 @@ class GenerateViewModel @Inject constructor(
                 ingredientsLoading = true
             )
 
-            val ingredients = aiRepository.generateIngredients(image)
+            val ingredients = aiRepository.generateIngredients(image.toBase64())
 
             _viewState.value = _viewState.value.copy(
                 ingredientsLoading = false,
