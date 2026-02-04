@@ -19,16 +19,4 @@
         <key>scan_meal</key>
         <value>scan-meal</value>
     </entry>
-    <entry>
-        <key>model_name</key>
-        <value>gemini-2.5-flash-image</value>
-    </entry>
-    <entry>
-        <key>imagen_name</key>
-        <value>imagen-4.0-fast-generate-001</value>
-    </entry>
-    <entry>
-        <key>schema_model_name</key>
-        <value>gemini-2.5-flash</value>
-    </entry>
 </defaults>
