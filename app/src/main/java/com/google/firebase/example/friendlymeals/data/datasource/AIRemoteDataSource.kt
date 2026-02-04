@@ -1,119 +1,46 @@
 package com.google.firebase.example.friendlymeals.data.datasource
 
 import android.graphics.Bitmap
-import com.google.firebase.ai.FirebaseAI
-import com.google.firebase.ai.GenerativeModel
-import com.google.firebase.ai.ImagenModel
+import com.google.firebase.ai.TemplateGenerativeModel
+import com.google.firebase.ai.TemplateImagenModel
 import com.google.firebase.ai.type.ImagePart
-import com.google.firebase.ai.type.ImagenAspectRatio
-import com.google.firebase.ai.type.ImagenImageFormat
-import com.google.firebase.ai.type.ImagenPersonFilterLevel
-import com.google.firebase.ai.type.ImagenSafetyFilterLevel
-import com.google.firebase.ai.type.ImagenSafetySettings
-import com.google.firebase.ai.type.ResponseModality
-import com.google.firebase.ai.type.Schema
-import com.google.firebase.ai.type.content
-import com.google.firebase.ai.type.generationConfig
-import com.google.firebase.ai.type.imagenGenerationConfig
+import com.google.firebase.ai.type.PublicPreviewAPI
 import com.google.firebase.example.friendlymeals.data.schema.MealSchema
 import com.google.firebase.example.friendlymeals.data.schema.RecipeSchema
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 
+@OptIn(PublicPreviewAPI::class)
 class AIRemoteDataSource @Inject constructor(
-    private val firebaseAI: FirebaseAI,
+    private val generativeModel: TemplateGenerativeModel,
+    private val imagenModel: TemplateImagenModel,
     private val remoteConfig: FirebaseRemoteConfig
 ) {
     private val json = Json { ignoreUnknownKeys = true }
 
-    private val generativeModel: GenerativeModel get() =
-        firebaseAI.generativeModel(
-            modelName = remoteConfig.getString("model_name"),
-            generationConfig = generationConfig {
-                responseModalities = listOf(ResponseModality.TEXT, ResponseModality.IMAGE)
-            }
-        )
-
-    private val imagenModel: ImagenModel get() =
-        firebaseAI.imagenModel(
-            modelName = remoteConfig.getString("imagen_name"),
-            generationConfig = imagenGenerationConfig {
-                numberOfImages = 1
-                aspectRatio = ImagenAspectRatio.SQUARE_1x1
-                imageFormat = ImagenImageFormat.png()
-            },
-            safetySettings = ImagenSafetySettings(
-                safetyFilterLevel = ImagenSafetyFilterLevel.BLOCK_LOW_AND_ABOVE,
-                personFilterLevel = ImagenPersonFilterLevel.BLOCK_ALL
+    suspend fun generateIngredients(imageData: String): String {
+        val response = generativeModel.generateContent(
+            templateId = remoteConfig.getString(GENERATE_INGREDIENTS_KEY),
+            inputs = mapOf(
+                MIME_TYPE_FIELD to MIME_TYPE_VALUE,
+                IMAGE_DATA_FIELD to imageData
             )
         )
 
-    private val mealSchemaModel: GenerativeModel get() =
-        firebaseAI.generativeModel(
-            modelName = remoteConfig.getString("schema_model_name"),
-            generationConfig = generationConfig {
-                responseMimeType = "application/json"
-                responseSchema = Schema.obj(
-                    mapOf(
-                        "protein" to Schema.string(),
-                        "fat" to Schema.string(),
-                        "carbs" to Schema.string(),
-                        "sugar" to Schema.string(),
-                        "ingredients" to Schema.array(Schema.string())
-                    )
-                )
-            }
-        )
-
-    private val recipeSchemaModel: GenerativeModel get() =
-        firebaseAI.generativeModel(
-            modelName = remoteConfig.getString("schema_model_name"),
-            generationConfig = generationConfig {
-                responseMimeType = "application/json"
-                responseSchema = Schema.obj(
-                    mapOf(
-                        "title" to Schema.string(),
-                        "instructions" to Schema.string(),
-                        "ingredients" to Schema.array(Schema.string()),
-                        "prepTime" to Schema.string(),
-                        "cookTime" to Schema.string(),
-                        "servings" to Schema.string(),
-                        "tags" to Schema.array(Schema.string())
-                    )
-                )
-            }
-        )
-
-    suspend fun generateIngredients(image: Bitmap): String {
-        val prompt = content {
-            image(image)
-            text("Please analyze this image and list all visible food ingredients. " +
-                    "Format the response as a comma-separated list of ingredients. " +
-                    "Be specific with measurements where possible, " +
-                    "but focus on identifying the ingredients accurately.")
-        }
-
-        val response = generativeModel.generateContent(prompt)
         return response.text.orEmpty()
     }
 
     suspend fun generateRecipe(ingredients: String, notes: String): RecipeSchema? {
-        var prompt = """
-            Create a detailed recipe based on these ingredients: $ingredients.
-            
-            Format requirements:
-            - 'instructions': Provide the cooking steps as a clear list of instructions separated by newlines. Use bold formatting on the step numbers. Use Markdown.
-            - 'ingredients': List all necessary items, including quantities.
-            - 'prepTime', 'cookTime', 'servings': Short strings (e.g., "15 mins").
-            - 'tags': Generate a list of 3-5 relevant category tags (e.g., "Healthy", "Vegan", "Gluten-Free", "Dessert", "Quick").
-        """.trimIndent()
-
-        if (notes.isNotBlank()) {
-            prompt += "\n\nIMPORTANT CUISINE AND DIETARY NOTES: $notes"
-        }
-
-        val response = recipeSchemaModel.generateContent(prompt)
+        val response = generativeModel.generateContent(
+            templateId = remoteConfig.getString(GENERATE_RECIPE_KEY),
+            inputs = buildMap {
+                put(INGREDIENTS_FIELD, ingredients)
+                if (notes.isNotBlank()) {
+                    put(NOTES_FIELD, notes)
+                }
+            }
+        )
 
         return response.text?.let {
             json.decodeFromString<RecipeSchema>(it)
@@ -121,41 +48,54 @@ class AIRemoteDataSource @Inject constructor(
     }
 
     suspend fun generateRecipePhoto(recipeTitle: String): Bitmap? {
-        val prompt = "A professional food photography shot of this recipe: $recipeTitle. " +
-                "Style: High-end food photography, restaurant-quality plating, soft natural " +
-                "lighting, on a clean background, showing the complete plated dish."
+        val response = generativeModel.generateContent(
+            templateId = remoteConfig.getString(GENERATE_RECIPE_PHOTO_GEMINI_KEY),
+            inputs = mapOf(RECIPE_TITLE_FIELD to recipeTitle)
+        )
 
-        return generativeModel.generateContent(prompt)
-            .candidates.firstOrNull()?.content?.parts
+        return response.candidates.firstOrNull()?.content?.parts
             ?.filterIsInstance<ImagePart>()?.firstOrNull()?.image
     }
 
     suspend fun generateRecipePhotoImagen(recipeTitle: String): Bitmap? {
-        val prompt = "A professional food photography shot of this recipe: $recipeTitle. " +
-                "Style: High-end food photography, restaurant-quality plating, soft natural " +
-                "lighting, on a clean background, showing the complete plated dish."
+        val response = imagenModel.generateImages(
+            templateId = remoteConfig.getString(GENERATE_RECIPE_PHOTO_IMAGEN_KEY),
+            inputs = mapOf(RECIPE_TITLE_FIELD to recipeTitle)
+        )
 
-        val imageResponse = imagenModel.generateImages(prompt)
-        return imageResponse.images.firstOrNull()?.asBitmap()
+        return response.images.firstOrNull()?.asBitmap()
     }
 
-    suspend fun scanMeal(image: Bitmap): MealSchema? {
-        val prompt = content {
-            image(image)
-            text(
-                """
-                Analyze this image of a meal and estimate the nutritional content.
-                Return the result in JSON format matching the schema:
-                - protein, fat, carbs, sugar (strings with units, e.g., '20g')
-                - ingredients (list of strings)
-                """.trimIndent()
+    suspend fun scanMeal(imageData: String): MealSchema? {
+        val response = generativeModel.generateContent(
+            templateId = remoteConfig.getString(SCAN_MEAL_KEY),
+            inputs = mapOf(
+                MIME_TYPE_FIELD to MIME_TYPE_VALUE,
+                IMAGE_DATA_FIELD to imageData
             )
-        }
-
-        val response = mealSchemaModel.generateContent(prompt)
+        )
 
         return response.text?.let {
             json.decodeFromString<MealSchema>(it)
         }
+    }
+
+    companion object {
+        //Remote Config Keys
+        private const val GENERATE_INGREDIENTS_KEY = "generate_ingredients"
+        private const val GENERATE_RECIPE_KEY = "generate_recipe"
+        private const val GENERATE_RECIPE_PHOTO_GEMINI_KEY = "generate_recipe_photo_gemini"
+        private const val GENERATE_RECIPE_PHOTO_IMAGEN_KEY = "generate_recipe_photo_imagen"
+        private const val SCAN_MEAL_KEY = "scan_meal"
+
+        //Template input fields
+        private const val IMAGE_DATA_FIELD = "imageData"
+        private const val MIME_TYPE_FIELD = "mimeType"
+        private const val INGREDIENTS_FIELD = "ingredients"
+        private const val NOTES_FIELD = "notes"
+        private const val RECIPE_TITLE_FIELD = "recipeTitle"
+
+        //Template input values
+        private const val MIME_TYPE_VALUE = "image/jpeg"
     }
 }

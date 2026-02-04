@@ -3,6 +3,7 @@ package com.google.firebase.example.friendlymeals.ui.scanMeal
 import android.graphics.Bitmap
 import com.google.firebase.example.friendlymeals.MainViewModel
 import com.google.firebase.example.friendlymeals.data.repository.AIRepository
+import com.google.firebase.example.friendlymeals.ui.shared.toBase64
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -32,7 +33,7 @@ class ScanMealViewModel @Inject constructor(
                 image = image,
             )
 
-            val mealSchema = aiRepository.scanMeal(image)
+            val mealSchema = aiRepository.scanMeal(image.toBase64())
 
             if (mealSchema == null) {
                 _viewState.value = _viewState.value.copy(

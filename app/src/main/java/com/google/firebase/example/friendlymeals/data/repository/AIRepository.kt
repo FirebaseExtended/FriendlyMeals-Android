@@ -9,8 +9,8 @@ import javax.inject.Inject
 class AIRepository @Inject constructor(
     private val aiRemoteDataSource: AIRemoteDataSource
 ) {
-    suspend fun generateIngredients(image: Bitmap): String {
-        return aiRemoteDataSource.generateIngredients(image)
+    suspend fun generateIngredients(imageData: String): String {
+        return aiRemoteDataSource.generateIngredients(imageData)
     }
 
     suspend fun generateRecipe(ingredients: String, notes: String): RecipeSchema? {
@@ -25,7 +25,7 @@ class AIRepository @Inject constructor(
         return aiRemoteDataSource.generateRecipePhotoImagen(recipeTitle)
     }
 
-    suspend fun scanMeal(image: Bitmap): MealSchema? {
-        return aiRemoteDataSource.scanMeal(image)
+    suspend fun scanMeal(imageData: String): MealSchema? {
+        return aiRemoteDataSource.scanMeal(imageData)
     }
 }

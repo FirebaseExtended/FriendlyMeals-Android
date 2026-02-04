@@ -3,8 +3,11 @@ package com.google.firebase.example.friendlymeals.data.injection
 import android.util.Log
 import com.google.firebase.Firebase
 import com.google.firebase.ai.FirebaseAI
+import com.google.firebase.ai.TemplateGenerativeModel
+import com.google.firebase.ai.TemplateImagenModel
 import com.google.firebase.ai.ai
 import com.google.firebase.ai.type.GenerativeBackend
+import com.google.firebase.ai.type.PublicPreviewAPI
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
 import com.google.firebase.example.friendlymeals.R
@@ -29,8 +32,19 @@ object FirebaseHiltModule {
 
     @Provides fun auth(): FirebaseAuth = Firebase.auth
 
-    @Provides fun firebaseAI(): FirebaseAI {
+    @Provides
+    fun firebaseAI(): FirebaseAI {
         return Firebase.ai(backend = GenerativeBackend.googleAI())
+    }
+
+    @OptIn(PublicPreviewAPI::class)
+    @Provides fun generativeModel(ai: FirebaseAI): TemplateGenerativeModel {
+        return ai.templateGenerativeModel()
+    }
+
+    @OptIn(PublicPreviewAPI::class)
+    @Provides fun imagenModel(ai: FirebaseAI): TemplateImagenModel {
+        return ai.templateImagenModel()
     }
 
     @Provides fun storage(): StorageReference {

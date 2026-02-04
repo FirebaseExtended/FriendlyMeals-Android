@@ -1,14 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?><defaults>
-  <entry>
-    <key>schema_model_name</key>
-    <value>gemini-2.5-flash</value>
-  </entry>
-  <entry>
-    <key>model_name</key>
-    <value>gemini-2.5-flash-image</value>
-  </entry>
-  <entry>
-    <key>imagen_name</key>
-    <value>imagen-4.0-fast-generate-001</value>
-  </entry>
+    <entry>
+        <key>generate_ingredients</key>
+        <value>generate-ingredients-template-v1-0-0</value>
+    </entry>
+    <entry>
+        <key>generate_recipe</key>
+        <value>generate-recipe-template-v1-0-0</value>
+    </entry>
+    <entry>
+        <key>generate_recipe_photo_gemini</key>
+        <value>generate-recipe-photo-gemini-template-v1-0-0</value>
+    </entry>
+    <entry>
+        <key>generate_recipe_photo_imagen</key>
+        <value>generate-recipe-photo-imagen-template-v1-0-0</value>
+    </entry>
+    <entry>
+        <key>scan_meal</key>
+        <value>scan-meal-template-v1-0-0</value>
+    </entry>
 </defaults>
