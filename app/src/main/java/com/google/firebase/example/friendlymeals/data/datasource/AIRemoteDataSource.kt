@@ -2,8 +2,10 @@ package com.google.firebase.example.friendlymeals.data.datasource
 
 import android.graphics.Bitmap
 import android.util.Log
+import com.google.firebase.Firebase
 import com.google.firebase.ai.FirebaseAI
 import com.google.firebase.ai.InferenceMode
+import com.google.firebase.ai.InferenceSource
 import com.google.firebase.ai.OnDeviceConfig
 import com.google.firebase.ai.TemplateGenerativeModel
 import com.google.firebase.ai.TemplateImagenModel
@@ -15,6 +17,8 @@ import com.google.firebase.ai.type.PublicPreviewAPI
 import com.google.firebase.ai.type.content
 import com.google.firebase.example.friendlymeals.data.schema.MealSchema
 import com.google.firebase.example.friendlymeals.data.schema.RecipeSchema
+import com.google.firebase.perf.performance
+import com.google.firebase.perf.trace
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
@@ -42,21 +46,34 @@ class AIRemoteDataSource @Inject constructor(
 
     @OptIn(PublicPreviewAPI::class)
     suspend fun generateIngredientsHybrid(image: Bitmap): String {
-        val hybridGenerativeModel = aiModel.generativeModel(
-            modelName = "gemini-3-flash-preview",
-            onDeviceConfig = OnDeviceConfig(mode = InferenceMode.PREFER_IN_CLOUD)
-        )
+        Firebase.performance.newTrace("hybrid-inference").trace {
+            val hybridGenerativeModel = aiModel.generativeModel(
+                modelName = "gemini-3-flash-preview",
+                onDeviceConfig = OnDeviceConfig(mode = InferenceMode.PREFER_IN_CLOUD)
+            )
 
-        val prompt = content {
-            image(image)
-            text("Please analyze this image and list all visible food ingredients. " +
-                    "Output ONLY a comma-separated list of ingredients. Do not include " +
-                    "any introductory text, headers, or concluding remarks. " +
-                    "Provide the raw list only. Be specific with measurements where possible.")
+            val prompt = content {
+                image(image)
+                text(
+                    "Please analyze this image and list all visible food ingredients. " +
+                            "Output ONLY a comma-separated list of ingredients. Do not include " +
+                            "any introductory text, headers, or concluding remarks. " +
+                            "Provide the raw list only. Be specific with measurements where possible."
+                )
+            }
+
+            val response = hybridGenerativeModel.generateContent(prompt)
+
+            putAttribute(
+                "inferenceSource",
+                when (response.inferenceSource) {
+                    InferenceSource.ON_DEVICE -> "On device"
+                    else -> "In cloud"
+                }
+            )
+            
+            return response.text.orEmpty()
         }
-
-        val response = hybridGenerativeModel.generateContent(prompt)
-        return response.text.orEmpty()
     }
 
     suspend fun generateRecipe(ingredients: String, notes: String): RecipeSchema? {
@@ -111,19 +128,19 @@ class AIRemoteDataSource @Inject constructor(
     suspend fun loadOnDeviceModel() {
         when (FirebaseAIOnDevice.checkStatus()) {
             OnDeviceModelStatus.UNAVAILABLE -> {
-                Log.w(TAG, "On-device model is unavailable")
+                Log.i(TAG, "On-device model is unavailable")
             }
             OnDeviceModelStatus.DOWNLOADABLE -> {
                 FirebaseAIOnDevice.download().collect { status ->
                     when (status) {
                         is DownloadStatus.DownloadStarted ->
-                            Log.w(TAG, "Starting download - ${status.bytesToDownload}")
+                            Log.i(TAG, "Starting download - ${status.bytesToDownload}")
 
                         is DownloadStatus.DownloadInProgress ->
-                            Log.w(TAG, "Download in progress ${status.totalBytesDownloaded} bytes downloaded")
+                            Log.i(TAG, "Download in progress ${status.totalBytesDownloaded} bytes downloaded")
 
                         is DownloadStatus.DownloadCompleted ->
-                            Log.w(TAG, "On-device model download complete")
+                            Log.i(TAG, "On-device model download complete")
 
                         is DownloadStatus.DownloadFailed ->
                             Log.e(TAG, "Download failed ${status}")
@@ -131,10 +148,10 @@ class AIRemoteDataSource @Inject constructor(
                 }
             }
             OnDeviceModelStatus.DOWNLOADING -> {
-                Log.w(TAG, "On-device model is being downloaded")
+                Log.i(TAG, "On-device model is being downloaded")
             }
             OnDeviceModelStatus.AVAILABLE -> {
-                Log.w(TAG, "On-device model is available")
+                Log.i(TAG, "On-device model is available")
             }
         }
     }
