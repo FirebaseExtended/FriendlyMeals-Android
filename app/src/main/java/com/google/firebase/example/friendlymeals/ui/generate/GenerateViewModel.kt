@@ -28,6 +28,7 @@ class GenerateViewModel @Inject constructor(
 
     init {
         loadCurrentUser()
+        loadOnDeviceModel()
     }
 
     fun loadCurrentUser() {
@@ -36,6 +37,12 @@ class GenerateViewModel @Inject constructor(
                 val user = authRepository.createAnonymousAccount()
                 databaseRepository.addUser(user)
             }
+        }
+    }
+
+    fun loadOnDeviceModel() {
+        launchCatching {
+            aiRepository.loadOnDeviceModel()
         }
     }
 
@@ -62,7 +69,10 @@ class GenerateViewModel @Inject constructor(
                 ingredientsLoading = true
             )
 
-            val ingredients = aiRepository.generateIngredients(image.toBase64())
+            //The following line of code uses hybrid inference to generate ingredients.
+            //To use the cloud-hosted model only, comment line 74 and uncomment line 75.
+            val ingredients = aiRepository.generateIngredientsHybrid(image)
+            //val ingredients = aiRepository.generateIngredients(image.toBase64())
 
             _viewState.value = _viewState.value.copy(
                 ingredientsLoading = false,

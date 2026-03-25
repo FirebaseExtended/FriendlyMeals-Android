@@ -2,6 +2,8 @@
 agp = "8.13.1"
 coilCompose = "2.7.0"
 exifinterface = "1.4.2"
+firebaseAi = "17.10.1"
+firebaseAiOndevice = "16.0.0-beta01"
 firebaseBom = "34.8.0"
 kotlin = "2.2.21"
 coreKtx = "1.17.0"
@@ -26,9 +28,10 @@ richtextCommonmark = "1.0.0-alpha03"
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-exifinterface = { module = "androidx.exifinterface:exifinterface", version.ref = "exifinterface" }
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
+firebase-ai = { module = "com.google.firebase:firebase-ai", version.ref = "firebaseAi" }
+firebase-ai-ondevice = { module = "com.google.firebase:firebase-ai-ondevice", version.ref = "firebaseAiOndevice" }
 firebase-auth = { module = "com.google.firebase:firebase-auth" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
-firebase-ai = { module = "com.google.firebase:firebase-ai" }
 firebase-config = { module = "com.google.firebase:firebase-config" }
 firebase-firestore = { module = "com.google.firebase:firebase-firestore" }
 firebase-storage = { module = "com.google.firebase:firebase-storage" }
