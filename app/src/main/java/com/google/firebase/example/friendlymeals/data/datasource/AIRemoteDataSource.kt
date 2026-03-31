@@ -48,18 +48,13 @@ class AIRemoteDataSource @Inject constructor(
     suspend fun generateIngredientsHybrid(image: Bitmap): String {
         Firebase.performance.newTrace("hybrid-inference").trace {
             val hybridGenerativeModel = aiModel.generativeModel(
-                modelName = "gemini-3-flash-preview",
+                modelName = remoteConfig.getString(HYBRID_CLOUD_MODEL_KEY),
                 onDeviceConfig = OnDeviceConfig(mode = InferenceMode.PREFER_IN_CLOUD)
             )
 
             val prompt = content {
                 image(image)
-                text(
-                    "Please analyze this image and list all visible food ingredients. " +
-                            "Output ONLY a comma-separated list of ingredients. Do not include " +
-                            "any introductory text, headers, or concluding remarks. " +
-                            "Provide the raw list only. Be specific with measurements where possible."
-                )
+                text(remoteConfig.getString(HYBRID_INGREDIENTS_PROMPT_KEY))
             }
 
             val response = hybridGenerativeModel.generateContent(prompt)
@@ -71,7 +66,7 @@ class AIRemoteDataSource @Inject constructor(
                     else -> "In cloud"
                 }
             )
-            
+
             return response.text.orEmpty()
         }
     }
@@ -163,6 +158,8 @@ class AIRemoteDataSource @Inject constructor(
         private const val GENERATE_RECIPE_PHOTO_GEMINI_KEY = "generate_recipe_photo_gemini"
         private const val GENERATE_RECIPE_PHOTO_IMAGEN_KEY = "generate_recipe_photo_imagen"
         private const val SCAN_MEAL_KEY = "scan_meal"
+        private const val HYBRID_CLOUD_MODEL_KEY = "hybrid_cloud_model"
+        private const val HYBRID_INGREDIENTS_PROMPT_KEY = "hybrid_ingredients_prompt"
 
         //Template input fields
         private const val IMAGE_DATA_FIELD = "imageData"
