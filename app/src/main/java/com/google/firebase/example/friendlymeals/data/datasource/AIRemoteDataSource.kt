@@ -31,27 +31,16 @@ class AIRemoteDataSource @Inject constructor(
     private val remoteConfig: FirebaseRemoteConfig
 ) {
     private val json = Json { ignoreUnknownKeys = true }
-
-    suspend fun generateIngredients(imageData: String): String {
-        val response = generativeModel.generateContent(
-            templateId = remoteConfig.getString(GENERATE_INGREDIENTS_KEY),
-            inputs = mapOf(
-                MIME_TYPE_FIELD to MIME_TYPE_VALUE,
-                IMAGE_DATA_FIELD to imageData
-            )
-        )
-
-        return response.text.orEmpty()
-    }
+    private val hybridGenerativeModel = aiModel.generativeModel(
+        modelName = remoteConfig.getString(HYBRID_CLOUD_MODEL_KEY),
+        onDeviceConfig = OnDeviceConfig(mode = InferenceMode.PREFER_IN_CLOUD)
+    )
 
     @OptIn(PublicPreviewAPI::class)
-    suspend fun generateIngredientsHybrid(image: Bitmap): String {
+    suspend fun generateIngredients(image: Bitmap): String {
+        // Adding a Performance Monitoring trace is completely optional. Traces can help you
+        // measure how long it takes to generate ingredients on device and in cloud.
         Firebase.performance.newTrace("hybrid-inference").trace {
-            val hybridGenerativeModel = aiModel.generativeModel(
-                modelName = remoteConfig.getString(HYBRID_CLOUD_MODEL_KEY),
-                onDeviceConfig = OnDeviceConfig(mode = InferenceMode.PREFER_IN_CLOUD)
-            )
-
             val prompt = content {
                 image(image)
                 text(remoteConfig.getString(HYBRID_INGREDIENTS_PROMPT_KEY))
@@ -59,6 +48,8 @@ class AIRemoteDataSource @Inject constructor(
 
             val response = hybridGenerativeModel.generateContent(prompt)
 
+            // This is an optional function that adds an attribute to the Performance Monitoring
+            // trace. It helps you identify the source of the inference.
             putAttribute(
                 "inferenceSource",
                 when (response.inferenceSource) {
@@ -138,7 +129,7 @@ class AIRemoteDataSource @Inject constructor(
                             Log.i(TAG, "On-device model download complete")
 
                         is DownloadStatus.DownloadFailed ->
-                            Log.e(TAG, "Download failed ${status}")
+                            Log.e(TAG, "Download failed $status")
                     }
                 }
             }
@@ -153,7 +144,6 @@ class AIRemoteDataSource @Inject constructor(
 
     companion object {
         //Remote Config Keys
-        private const val GENERATE_INGREDIENTS_KEY = "generate_ingredients"
         private const val GENERATE_RECIPE_KEY = "generate_recipe"
         private const val GENERATE_RECIPE_PHOTO_GEMINI_KEY = "generate_recipe_photo_gemini"
         private const val GENERATE_RECIPE_PHOTO_IMAGEN_KEY = "generate_recipe_photo_imagen"

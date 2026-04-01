@@ -12,10 +12,6 @@
         <value>scan-meal-template-v1-0-0</value>
     </entry>
     <entry>
-        <key>generate_ingredients</key>
-        <value>generate-ingredients-template-v1-0-0</value>
-    </entry>
-    <entry>
         <key>generate_recipe_photo_gemini</key>
         <value>generate-recipe-photo-gemini-template-v1-0-0</value>
     </entry>
