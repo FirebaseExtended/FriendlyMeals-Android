@@ -1,34 +1,65 @@
 package com.google.firebase.example.friendlymeals.data.datasource
 
 import android.graphics.Bitmap
+import android.util.Log
+import com.google.firebase.Firebase
+import com.google.firebase.ai.FirebaseAI
+import com.google.firebase.ai.InferenceMode
+import com.google.firebase.ai.InferenceSource
+import com.google.firebase.ai.OnDeviceConfig
 import com.google.firebase.ai.TemplateGenerativeModel
 import com.google.firebase.ai.TemplateImagenModel
+import com.google.firebase.ai.ondevice.DownloadStatus
+import com.google.firebase.ai.ondevice.FirebaseAIOnDevice
+import com.google.firebase.ai.ondevice.OnDeviceModelStatus
 import com.google.firebase.ai.type.ImagePart
 import com.google.firebase.ai.type.PublicPreviewAPI
+import com.google.firebase.ai.type.content
 import com.google.firebase.example.friendlymeals.data.schema.MealSchema
 import com.google.firebase.example.friendlymeals.data.schema.RecipeSchema
+import com.google.firebase.perf.performance
+import com.google.firebase.perf.trace
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 
 @OptIn(PublicPreviewAPI::class)
 class AIRemoteDataSource @Inject constructor(
+    private val aiModel: FirebaseAI,
     private val generativeModel: TemplateGenerativeModel,
     private val imagenModel: TemplateImagenModel,
     private val remoteConfig: FirebaseRemoteConfig
 ) {
     private val json = Json { ignoreUnknownKeys = true }
+    private val hybridGenerativeModel = aiModel.generativeModel(
+        modelName = remoteConfig.getString(HYBRID_CLOUD_MODEL_KEY),
+        onDeviceConfig = OnDeviceConfig(mode = InferenceMode.PREFER_IN_CLOUD)
+    )
 
-    suspend fun generateIngredients(imageData: String): String {
-        val response = generativeModel.generateContent(
-            templateId = remoteConfig.getString(GENERATE_INGREDIENTS_KEY),
-            inputs = mapOf(
-                MIME_TYPE_FIELD to MIME_TYPE_VALUE,
-                IMAGE_DATA_FIELD to imageData
+    @OptIn(PublicPreviewAPI::class)
+    suspend fun generateIngredients(image: Bitmap): String {
+        // Adding a Performance Monitoring trace is completely optional. Traces can help you
+        // measure how long it takes to generate ingredients on device and in cloud.
+        Firebase.performance.newTrace("hybrid-inference").trace {
+            val prompt = content {
+                image(image)
+                text(remoteConfig.getString(HYBRID_INGREDIENTS_PROMPT_KEY))
+            }
+
+            val response = hybridGenerativeModel.generateContent(prompt)
+
+            // This is an optional function that adds an attribute to the Performance Monitoring
+            // trace. It helps you identify the source of the inference.
+            putAttribute(
+                "inferenceSource",
+                when (response.inferenceSource) {
+                    InferenceSource.ON_DEVICE -> "On device"
+                    else -> "In cloud"
+                }
             )
-        )
 
-        return response.text.orEmpty()
+            return response.text.orEmpty()
+        }
     }
 
     suspend fun generateRecipe(ingredients: String, notes: String): RecipeSchema? {
@@ -80,13 +111,45 @@ class AIRemoteDataSource @Inject constructor(
         }
     }
 
+    suspend fun loadOnDeviceModel() {
+        when (FirebaseAIOnDevice.checkStatus()) {
+            OnDeviceModelStatus.UNAVAILABLE -> {
+                Log.i(TAG, "On-device model is unavailable")
+            }
+            OnDeviceModelStatus.DOWNLOADABLE -> {
+                FirebaseAIOnDevice.download().collect { status ->
+                    when (status) {
+                        is DownloadStatus.DownloadStarted ->
+                            Log.i(TAG, "Starting download - ${status.bytesToDownload}")
+
+                        is DownloadStatus.DownloadInProgress ->
+                            Log.i(TAG, "Download in progress ${status.totalBytesDownloaded} bytes downloaded")
+
+                        is DownloadStatus.DownloadCompleted ->
+                            Log.i(TAG, "On-device model download complete")
+
+                        is DownloadStatus.DownloadFailed ->
+                            Log.e(TAG, "Download failed $status")
+                    }
+                }
+            }
+            OnDeviceModelStatus.DOWNLOADING -> {
+                Log.i(TAG, "On-device model is being downloaded")
+            }
+            OnDeviceModelStatus.AVAILABLE -> {
+                Log.i(TAG, "On-device model is available")
+            }
+        }
+    }
+
     companion object {
         //Remote Config Keys
-        private const val GENERATE_INGREDIENTS_KEY = "generate_ingredients"
         private const val GENERATE_RECIPE_KEY = "generate_recipe"
         private const val GENERATE_RECIPE_PHOTO_GEMINI_KEY = "generate_recipe_photo_gemini"
         private const val GENERATE_RECIPE_PHOTO_IMAGEN_KEY = "generate_recipe_photo_imagen"
         private const val SCAN_MEAL_KEY = "scan_meal"
+        private const val HYBRID_CLOUD_MODEL_KEY = "hybrid_cloud_model"
+        private const val HYBRID_INGREDIENTS_PROMPT_KEY = "hybrid_ingredients_prompt"
 
         //Template input fields
         private const val IMAGE_DATA_FIELD = "imageData"
@@ -97,5 +160,8 @@ class AIRemoteDataSource @Inject constructor(
 
         //Template input values
         private const val MIME_TYPE_VALUE = "image/jpeg"
+
+        //Class TAG
+        private const val TAG = "AIRemoteDataSource"
     }
 }

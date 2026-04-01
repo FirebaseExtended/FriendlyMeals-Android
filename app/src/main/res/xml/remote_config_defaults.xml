@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?><defaults>
     <entry>
-        <key>generate_ingredients</key>
-        <value>generate-ingredients-template-v1-0-0</value>
+        <key>hybrid_cloud_model</key>
+        <value>gemini-3.1-flash-lite-preview</value>
     </entry>
     <entry>
-        <key>generate_recipe</key>
-        <value>generate-recipe-template-v1-0-0</value>
+        <key>hybrid_ingredients_prompt</key>
+        <value>Please analyze this image and list all visible food ingredients. Output ONLY a comma-separated list of ingredients. Do not include any introductory text, headers, or concluding remarks. Provide the raw list only. Be specific with measurements where possible.</value>
+    </entry>
+    <entry>
+        <key>scan_meal</key>
+        <value>scan-meal-template-v1-0-0</value>
     </entry>
     <entry>
         <key>generate_recipe_photo_gemini</key>
@@ -16,7 +20,7 @@
         <value>generate-recipe-photo-imagen-template-v1-0-0</value>
     </entry>
     <entry>
-        <key>scan_meal</key>
-        <value>scan-meal-template-v1-0-0</value>
+        <key>generate_recipe</key>
+        <value>generate-recipe-template-v1-0-0</value>
     </entry>
 </defaults>

@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.google.ksp)
     alias(libs.plugins.google.hilt)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.firebase.perf)
 }
 
 android {
@@ -63,10 +64,12 @@ dependencies {
 
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.ai)
+    implementation(libs.firebase.ai.ondevice)
     implementation(libs.firebase.config)
     implementation(libs.firebase.auth)
     implementation(libs.firebase.storage)
     implementation(libs.firebase.firestore)
+    implementation(libs.firebase.perf)
 
     //Library to handle Markdown in Compose
     implementation(libs.richtext.commonmark)

@@ -2,7 +2,9 @@
 agp = "8.13.1"
 coilCompose = "2.7.0"
 exifinterface = "1.4.2"
-firebaseBom = "34.8.0"
+firebaseAi = "17.10.1"
+firebaseAiOndevice = "16.0.0-beta01"
+firebaseBom = "34.11.0"
 kotlin = "2.2.21"
 coreKtx = "1.17.0"
 junit = "4.13.2"
@@ -21,16 +23,19 @@ navigationCompose = "2.9.6"
 constraintlayoutCompose = "1.1.1"
 kotlinxSerializationJson = "1.9.0"
 richtextCommonmark = "1.0.0-alpha03"
+firebasePerf = "2.0.2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-exifinterface = { module = "androidx.exifinterface:exifinterface", version.ref = "exifinterface" }
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
+firebase-ai = { module = "com.google.firebase:firebase-ai", version.ref = "firebaseAi" }
+firebase-ai-ondevice = { module = "com.google.firebase:firebase-ai-ondevice", version.ref = "firebaseAiOndevice" }
 firebase-auth = { module = "com.google.firebase:firebase-auth" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
-firebase-ai = { module = "com.google.firebase:firebase-ai" }
 firebase-config = { module = "com.google.firebase:firebase-config" }
 firebase-firestore = { module = "com.google.firebase:firebase-firestore" }
+firebase-perf = { module = "com.google.firebase:firebase-perf" }
 firebase-storage = { module = "com.google.firebase:firebase-storage" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
@@ -62,4 +67,5 @@ google-services = { id = "com.google.gms.google-services", version.ref = "google
 google-hilt = { id = "com.google.dagger.hilt.android", version.ref = "googleHilt" }
 google-ksp = { id = "com.google.devtools.ksp", version.ref ="googleKotlinKsp" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+firebase-perf = { id = "com.google.firebase.firebase-perf", version.ref = "firebasePerf" }
 
