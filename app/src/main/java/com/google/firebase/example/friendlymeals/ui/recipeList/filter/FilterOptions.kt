@@ -4,6 +4,7 @@ import com.google.firebase.example.friendlymeals.ui.recipeList.filter.SortByFilt
 
 data class FilterOptions(
     val recipeTitle: String = "",
+    val searchQuery: String = "",
     val filterByMine: Boolean = false,
     val rating: Int = 0,
     val selectedTags: List<String> = listOf(),

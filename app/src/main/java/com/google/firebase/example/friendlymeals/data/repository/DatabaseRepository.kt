@@ -4,7 +4,6 @@ import com.google.firebase.example.friendlymeals.data.datasource.DatabaseRemoteD
 import com.google.firebase.example.friendlymeals.data.model.Recipe
 import com.google.firebase.example.friendlymeals.data.model.Review
 import com.google.firebase.example.friendlymeals.data.model.Like
-import com.google.firebase.example.friendlymeals.data.model.Tag
 import com.google.firebase.example.friendlymeals.data.model.User
 import com.google.firebase.example.friendlymeals.ui.recipeList.RecipeListItem
 import com.google.firebase.example.friendlymeals.ui.recipeList.filter.FilterOptions
@@ -29,11 +28,7 @@ class DatabaseRepository @Inject constructor(
         return databaseRemoteDataSource.getAllRecipes()
     }
 
-    suspend fun addTags(tagNames: List<String>) {
-        return databaseRemoteDataSource.addTags(tagNames)
-    }
-
-    suspend fun getPopularTags(): List<Tag> {
+    suspend fun getPopularTags(): List<String> {
         return databaseRemoteDataSource.getPopularTags()
     }
 

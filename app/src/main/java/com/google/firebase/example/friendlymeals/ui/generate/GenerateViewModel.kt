@@ -107,8 +107,6 @@ class GenerateViewModel @Inject constructor(
                 recipeImageUri = storageRepository.addImage(recipeImage)
             }
 
-            databaseRepository.addTags(generatedRecipe.tags)
-
             val storedRecipeId = databaseRepository.addRecipe(
                 recipe = generatedRecipe.toRecipe(
                     authorId = authRepository.currentUser?.uid.orEmpty(),
