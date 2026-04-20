@@ -9,7 +9,6 @@ data class Recipe(
     val authorId: String = "",
     val tags: List<String> = listOf(),
     @get:Exclude val averageRating: Double = 0.0,
-    @get:Exclude val likes: Int = 0,
     val prepTime: String = "",
     val cookTime: String = "",
     val servings: String = "",

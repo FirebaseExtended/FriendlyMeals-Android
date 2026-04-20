@@ -11,6 +11,7 @@ import com.google.firebase.example.friendlymeals.ui.recipeList.filter.SortByFilt
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.PipelineResult
 import com.google.firebase.firestore.PipelineSource
+import com.google.firebase.firestore.pipeline.AggregateFunction
 import com.google.firebase.firestore.pipeline.AggregateFunction.Companion.average
 import com.google.firebase.firestore.pipeline.AggregateFunction.Companion.countAll
 import com.google.firebase.firestore.pipeline.AggregateStage
@@ -64,11 +65,7 @@ class DatabaseRemoteDataSource @Inject constructor(
             .addFields(
                 PipelineSource.subcollection(REVIEWS_SUBCOLLECTION)
                     .aggregate(average(RATING_FIELD).alias(AVG_RATING_ALIAS))
-                    .toScalarExpression().alias(AVERAGE_RATING_FIELD),
-                firestore.pipeline().collection(LIKES_COLLECTION)
-                    .where(equal(RECIPE_ID_FIELD, variable(CURRENT_RECIPE_ID_VAR)))
-                    .aggregate(countAll().alias(COUNT_ALIAS))
-                    .toScalarExpression().alias(LIKES_FIELD)
+                    .toScalarExpression().alias(AVERAGE_RATING_FIELD)
             )
             .execute().await().results.toRecipeListItem()
     }
@@ -109,18 +106,21 @@ class DatabaseRemoteDataSource @Inject constructor(
     }
 
     private suspend fun getAverageRatingForRecipe(recipeId: String): Double {
+        val collectionPath = "${RECIPES_COLLECTION}/${recipeId}/${REVIEWS_SUBCOLLECTION}"
+
         val results = firestore
             .pipeline()
-            .documents("${RECIPES_COLLECTION}/${recipeId}")
-            .addFields(
-                PipelineSource.subcollection(REVIEWS_SUBCOLLECTION)
-                    .aggregate(average(RATING_FIELD).alias(AVG_RATING_ALIAS))
-                    .toScalarExpression().alias(AVERAGE_RATING_FIELD)
-            )
-            .execute().await().results
+            .collection(collectionPath)
+            .aggregate(
+                AggregateStage.withAccumulators(
+                    AggregateFunction
+                        .average(RATING_FIELD)
+                        .alias(AVG_RATING_ALIAS)
+                )
+            ).execute().await().results
 
         val itemData = results.first().getData()
-        return (itemData[AVERAGE_RATING_FIELD] as? Number)?.toDouble() ?: 0.0
+        return (itemData[AVG_RATING_ALIAS] as? Number)?.toDouble() ?: 0.0
     }
 
     suspend fun getRating(userId: String, recipeId: String): Int {
@@ -175,7 +175,6 @@ class DatabaseRemoteDataSource @Inject constructor(
         userId: String
     ): List<RecipeListItem> {
         var pipeline = firestore.pipeline().collection(RECIPES_COLLECTION)
-        Log.v("DEBUG", "Applying filters")
 
         if (filterOptions.searchQuery.isNotBlank()) {
             val searchStage = SearchStage.withQuery(filterOptions.searchQuery)
@@ -183,7 +182,6 @@ class DatabaseRemoteDataSource @Inject constructor(
 
             pipeline = pipeline.search(searchStage)
                 .sort(field(SCORE_ALIAS).descending())
-            Log.v("DEBUG","Search stage")
         } else if (filterOptions.recipeTitle.isNotBlank()) {
             pipeline = pipeline
                 .where(
@@ -247,7 +245,6 @@ class DatabaseRemoteDataSource @Inject constructor(
             authorId = itemData[AUTHOR_ID_FIELD] as? String ?: "",
             tags = (itemData[TAGS_FIELD] as? List<*>)?.filterIsInstance<String>() ?: listOf(),
             averageRating = (itemData[AVERAGE_RATING_FIELD] as? Number)?.toDouble() ?: 0.0,
-            likes = (itemData[LIKES_FIELD] as? Number)?.toInt() ?: 0,
             prepTime = itemData[PREP_TIME_FIELD] as? String ?: "",
             cookTime = itemData[COOK_TIME_FIELD] as? String ?: "",
             servings = itemData[SERVINGS_FIELD] as? String ?: "",
@@ -270,7 +267,6 @@ class DatabaseRemoteDataSource @Inject constructor(
                 id = id,
                 title = itemData[TITLE_FIELD] as? String ?: "",
                 averageRating = (itemData[AVERAGE_RATING_FIELD] as? Number)?.toDouble() ?: 0.0,
-                likes = (itemData[LIKES_FIELD] as? Number)?.toInt() ?: 0,
                 imageUri = itemData[IMAGE_URI_FIELD] as? String
             )
         }
