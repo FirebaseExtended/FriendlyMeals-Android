@@ -16,6 +16,7 @@ import com.google.firebase.firestore.pipeline.AggregateFunction.Companion.averag
 import com.google.firebase.firestore.pipeline.AggregateFunction.Companion.countAll
 import com.google.firebase.firestore.pipeline.AggregateStage
 import com.google.firebase.firestore.pipeline.Expression
+import com.google.firebase.firestore.pipeline.Expression.Companion.documentId
 import com.google.firebase.firestore.pipeline.Expression.Companion.equal
 import com.google.firebase.firestore.pipeline.Expression.Companion.field
 import com.google.firebase.firestore.pipeline.Expression.Companion.variable
@@ -44,15 +45,11 @@ class DatabaseRemoteDataSource @Inject constructor(
         return firestore
             .pipeline()
             .documents(recipePath)
-            .define(field("id").alias(CURRENT_RECIPE_ID_VAR))
+            .define(documentId(field("__name__")).alias(CURRENT_RECIPE_ID_VAR))
             .addFields(
                 PipelineSource.subcollection(REVIEWS_SUBCOLLECTION)
                     .aggregate(average(RATING_FIELD).alias(AVG_RATING_ALIAS))
-                    .toScalarExpression().alias(AVERAGE_RATING_FIELD),
-                firestore.pipeline().collection(LIKES_COLLECTION)
-                    .where(equal(RECIPE_ID_FIELD, variable(CURRENT_RECIPE_ID_VAR)))
-                    .aggregate(countAll().alias(COUNT_ALIAS))
-                    .toScalarExpression().alias(LIKES_FIELD)
+                    .toScalarExpression().alias(AVERAGE_RATING_FIELD)
             )
             .execute().await().results.toRecipe()
     }
@@ -61,7 +58,7 @@ class DatabaseRemoteDataSource @Inject constructor(
         return firestore
             .pipeline()
             .collection(RECIPES_COLLECTION)
-            .define(field("id").alias(CURRENT_RECIPE_ID_VAR))
+            .define(documentId(field("__name__")).alias(CURRENT_RECIPE_ID_VAR))
             .addFields(
                 PipelineSource.subcollection(REVIEWS_SUBCOLLECTION)
                     .aggregate(average(RATING_FIELD).alias(AVG_RATING_ALIAS))
@@ -196,6 +193,14 @@ class DatabaseRemoteDataSource @Inject constructor(
                     .equal(userId))
         }
 
+        pipeline = pipeline
+            .define(documentId(field("__name__")).alias(CURRENT_RECIPE_ID_VAR))
+            .addFields(
+                PipelineSource.subcollection(REVIEWS_SUBCOLLECTION)
+                    .aggregate(average(RATING_FIELD).alias(AVG_RATING_ALIAS))
+                    .toScalarExpression().alias(AVERAGE_RATING_FIELD)
+            )
+
         if (filterOptions.rating > 0) {
             pipeline = pipeline
                 .where(field(AVERAGE_RATING_FIELD)
@@ -211,12 +216,6 @@ class DatabaseRemoteDataSource @Inject constructor(
         when (filterOptions.sortBy) {
             SortByFilter.RATING -> {
                 pipeline = pipeline
-                    .define(field("id").alias(CURRENT_RECIPE_ID_VAR))
-                    .addFields(
-                        PipelineSource.subcollection(REVIEWS_SUBCOLLECTION)
-                            .aggregate(average(RATING_FIELD).alias(AVG_RATING_ALIAS))
-                            .toScalarExpression().alias(AVERAGE_RATING_FIELD)
-                    )
                     .sort(field(AVERAGE_RATING_FIELD)
                         .descending())
             }
