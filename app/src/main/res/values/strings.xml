@@ -31,6 +31,7 @@
     <string name="filter_rating_content_description">%d Stars</string>
     <string name="filter_tags_label">Tags</string>
     <string name="filter_sort_by_label">Sort By</string>
+    <string name="filter_sort_by_default">Default</string>
     <string name="filter_sort_by_rating">Rating</string>
     <string name="filter_sort_by_alphabetical">Alphabetical</string>
     <string name="filter_sort_by_popularity">Popularity</string>

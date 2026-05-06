@@ -262,31 +262,38 @@ fun FilterScreenContent(
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 RadioButton(
+                    selected = filterOptions.sortBy == SortByFilter.DEFAULT,
+                    onClick = { updateSortBy(SortByFilter.DEFAULT) },
+                    colors = RadioButtonDefaults.colors(selectedColor = Teal)
+                )
+                Text(stringResource(id = SortByFilter.DEFAULT.title))
+
+                Spacer(modifier = Modifier.width(24.dp))
+
+                RadioButton(
                     selected = filterOptions.sortBy == SortByFilter.RATING,
                     onClick = { updateSortBy(SortByFilter.RATING) },
                     colors = RadioButtonDefaults.colors(selectedColor = Teal)
                 )
                 Text(stringResource(id = SortByFilter.RATING.title))
-                
-                Spacer(modifier = Modifier.width(24.dp))
-                
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 RadioButton(
                     selected = filterOptions.sortBy == SortByFilter.ALPHABETICAL,
                     onClick = { updateSortBy(SortByFilter.ALPHABETICAL) },
                     colors = RadioButtonDefaults.colors(selectedColor = Teal)
                 )
                 Text(stringResource(id = SortByFilter.ALPHABETICAL.title))
-            }
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
+                Spacer(modifier = Modifier.width(24.dp))
+
                 RadioButton(
                     selected = filterOptions.sortBy == SortByFilter.POPULARITY,
                     onClick = { updateSortBy(SortByFilter.POPULARITY) },
                     colors = RadioButtonDefaults.colors(selectedColor = Teal)
                 )
                 Text(stringResource(id = SortByFilter.POPULARITY.title))
-
-                Spacer(modifier = Modifier.width(24.dp))
             }
 
             Spacer(modifier = Modifier.weight(1f))

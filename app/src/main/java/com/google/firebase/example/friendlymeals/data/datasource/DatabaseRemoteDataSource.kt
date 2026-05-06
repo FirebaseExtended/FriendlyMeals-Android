@@ -214,6 +214,7 @@ class DatabaseRemoteDataSource @Inject constructor(
         }
 
         when (filterOptions.sortBy) {
+            SortByFilter.DEFAULT -> {}
             SortByFilter.RATING -> {
                 pipeline = pipeline
                     .sort(field(AVERAGE_RATING_FIELD)

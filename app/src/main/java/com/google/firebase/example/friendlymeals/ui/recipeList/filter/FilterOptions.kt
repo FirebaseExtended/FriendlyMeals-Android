@@ -1,6 +1,6 @@
 package com.google.firebase.example.friendlymeals.ui.recipeList.filter
 
-import com.google.firebase.example.friendlymeals.ui.recipeList.filter.SortByFilter.RATING
+import com.google.firebase.example.friendlymeals.ui.recipeList.filter.SortByFilter.DEFAULT
 
 data class FilterOptions(
     val recipeTitle: String = "",
@@ -8,5 +8,5 @@ data class FilterOptions(
     val filterByMine: Boolean = false,
     val rating: Int = 0,
     val selectedTags: List<String> = listOf(),
-    val sortBy: SortByFilter = RATING
+    val sortBy: SortByFilter = DEFAULT
 )
