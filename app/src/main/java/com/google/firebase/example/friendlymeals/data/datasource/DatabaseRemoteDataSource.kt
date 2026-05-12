@@ -11,22 +11,18 @@ import com.google.firebase.example.friendlymeals.ui.recipeList.filter.SortByFilt
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.PipelineResult
 import com.google.firebase.firestore.PipelineSource
-import com.google.firebase.firestore.pipeline.AggregateFunction
 import com.google.firebase.firestore.pipeline.AggregateFunction.Companion.average
 import com.google.firebase.firestore.pipeline.AggregateFunction.Companion.countAll
 import com.google.firebase.firestore.pipeline.AggregateStage
 import com.google.firebase.firestore.pipeline.Expression
 import com.google.firebase.firestore.pipeline.Expression.Companion.documentId
-import com.google.firebase.firestore.pipeline.Expression.Companion.equal
 import com.google.firebase.firestore.pipeline.Expression.Companion.field
-import com.google.firebase.firestore.pipeline.Expression.Companion.variable
 import com.google.firebase.firestore.pipeline.SearchStage
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import kotlin.collections.first
 import kotlin.collections.mapNotNull
 
-@Suppress("UnstableApiUsage")
 class DatabaseRemoteDataSource @Inject constructor(
     private val firestore: FirebaseFirestore
 ) {
@@ -45,7 +41,9 @@ class DatabaseRemoteDataSource @Inject constructor(
         return firestore
             .pipeline()
             .documents(recipePath)
-            .define(documentId(field("__name__")).alias(CURRENT_RECIPE_ID_VAR))
+            .define(
+                documentId(field(NAME_FIELD_PATH))
+                    .alias(CURRENT_RECIPE_ID_VAR))
             .addFields(
                 PipelineSource.subcollection(REVIEWS_SUBCOLLECTION)
                     .aggregate(average(RATING_FIELD).alias(AVG_RATING_ALIAS))
@@ -58,7 +56,9 @@ class DatabaseRemoteDataSource @Inject constructor(
         return firestore
             .pipeline()
             .collection(RECIPES_COLLECTION)
-            .define(documentId(field("__name__")).alias(CURRENT_RECIPE_ID_VAR))
+            .define(
+                documentId(field(NAME_FIELD_PATH))
+                    .alias(CURRENT_RECIPE_ID_VAR))
             .addFields(
                 PipelineSource.subcollection(REVIEWS_SUBCOLLECTION)
                     .aggregate(average(RATING_FIELD).alias(AVG_RATING_ALIAS))
@@ -102,24 +102,6 @@ class DatabaseRemoteDataSource @Inject constructor(
         reviewRef.set(review).await()
     }
 
-    private suspend fun getAverageRatingForRecipe(recipeId: String): Double {
-        val collectionPath = "${RECIPES_COLLECTION}/${recipeId}/${REVIEWS_SUBCOLLECTION}"
-
-        val results = firestore
-            .pipeline()
-            .collection(collectionPath)
-            .aggregate(
-                AggregateStage.withAccumulators(
-                    AggregateFunction
-                        .average(RATING_FIELD)
-                        .alias(AVG_RATING_ALIAS)
-                )
-            ).execute().await().results
-
-        val itemData = results.first().getData()
-        return (itemData[AVG_RATING_ALIAS] as? Number)?.toDouble() ?: 0.0
-    }
-
     suspend fun getRating(userId: String, recipeId: String): Int {
         val reviewId = "${recipeId}_${userId}"
         val reviewPath = "${RECIPES_COLLECTION}/${recipeId}/${REVIEWS_SUBCOLLECTION}/${reviewId}"
@@ -132,7 +114,6 @@ class DatabaseRemoteDataSource @Inject constructor(
         if (results.isEmpty()) return 0
 
         val reviewData = results.first().getData()
-
         return (reviewData[RATING_FIELD] as? Number)?.toInt() ?: 0
     }
 
@@ -167,6 +148,7 @@ class DatabaseRemoteDataSource @Inject constructor(
             .execute().await().results.isNotEmpty()
     }
 
+    @Suppress("UnstableApiUsage")
     suspend fun getFilteredRecipes(
         filterOptions: FilterOptions,
         userId: String
@@ -177,8 +159,7 @@ class DatabaseRemoteDataSource @Inject constructor(
             val searchStage = SearchStage.withQuery(filterOptions.searchQuery)
                 .withAddFields(Expression.score().alias(SCORE_ALIAS))
 
-            pipeline = pipeline.search(searchStage)
-                .sort(field(SCORE_ALIAS).descending())
+            pipeline = pipeline.search(searchStage).sort(field(SCORE_ALIAS).descending())
         } else if (filterOptions.recipeTitle.isNotBlank()) {
             pipeline = pipeline
                 .where(
@@ -188,14 +169,13 @@ class DatabaseRemoteDataSource @Inject constructor(
         }
 
         if (filterOptions.filterByMine) {
-            pipeline = pipeline
-                .where(field(AUTHOR_ID_FIELD)
-                    .equal(userId))
+            pipeline = pipeline.where(field(AUTHOR_ID_FIELD).equal(userId))
         }
 
         pipeline = pipeline
-            .define(documentId(field("__name__")).alias(CURRENT_RECIPE_ID_VAR))
-            .addFields(
+            .define(
+                documentId(field(NAME_FIELD_PATH)).alias(CURRENT_RECIPE_ID_VAR)
+            ).addFields(
                 PipelineSource.subcollection(REVIEWS_SUBCOLLECTION)
                     .aggregate(average(RATING_FIELD).alias(AVG_RATING_ALIAS))
                     .toScalarExpression().alias(AVERAGE_RATING_FIELD)
@@ -203,32 +183,24 @@ class DatabaseRemoteDataSource @Inject constructor(
 
         if (filterOptions.rating > 0) {
             pipeline = pipeline
-                .where(field(AVERAGE_RATING_FIELD)
-                    .greaterThanOrEqual(filterOptions.rating))
+                .where(field(AVERAGE_RATING_FIELD).greaterThanOrEqual(filterOptions.rating))
         }
 
         if (filterOptions.selectedTags.isNotEmpty()) {
             pipeline = pipeline
-                .where(field(TAGS_FIELD)
-                    .arrayContainsAny(filterOptions.selectedTags))
+                .where(field(TAGS_FIELD).arrayContainsAny(filterOptions.selectedTags))
         }
 
         when (filterOptions.sortBy) {
             SortByFilter.DEFAULT -> {}
             SortByFilter.RATING -> {
-                pipeline = pipeline
-                    .sort(field(AVERAGE_RATING_FIELD)
-                        .descending())
+                pipeline = pipeline.sort(field(AVERAGE_RATING_FIELD).descending())
             }
             SortByFilter.ALPHABETICAL -> {
-                pipeline = pipeline
-                    .sort(field(TITLE_FIELD)
-                        .ascending())
+                pipeline = pipeline.sort(field(TITLE_FIELD).ascending())
             }
             SortByFilter.POPULARITY -> {
-                pipeline = pipeline
-                    .sort(field(LIKES_FIELD)
-                        .descending())
+                pipeline = pipeline.sort(field(LIKES_FIELD).descending())
             }
         }
 
@@ -292,16 +264,18 @@ class DatabaseRemoteDataSource @Inject constructor(
         private const val SERVINGS_FIELD = "servings"
         private const val INSTRUCTIONS_FIELD = "instructions"
         private const val INGREDIENTS_FIELD = "ingredients"
-        private const val RECIPE_ID_FIELD = "recipeId"
 
         //Field aliases
         private const val AVG_RATING_ALIAS = "avg_rating"
         private const val TAG_NAME_ALIAS = "tagName"
         private const val TAG_COUNT_ALIAS = "tagCount"
-        private const val COUNT_ALIAS = "count"
+        private const val LIKED_COUNT_ALIAS = "likesCount"
         private const val SCORE_ALIAS = "score"
 
         //Variables
         private const val CURRENT_RECIPE_ID_VAR = "current_recipe_id"
+
+        //Field paths
+        private const val NAME_FIELD_PATH = "__name__"
     }
 }
