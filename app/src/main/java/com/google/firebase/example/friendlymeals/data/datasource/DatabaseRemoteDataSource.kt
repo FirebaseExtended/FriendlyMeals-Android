@@ -17,6 +17,7 @@ import com.google.firebase.firestore.pipeline.AggregateStage
 import com.google.firebase.firestore.pipeline.Expression
 import com.google.firebase.firestore.pipeline.Expression.Companion.documentId
 import com.google.firebase.firestore.pipeline.Expression.Companion.field
+import com.google.firebase.firestore.pipeline.Expression.Companion.variable
 import com.google.firebase.firestore.pipeline.SearchStage
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
@@ -178,7 +179,13 @@ class DatabaseRemoteDataSource @Inject constructor(
             ).addFields(
                 PipelineSource.subcollection(REVIEWS_SUBCOLLECTION)
                     .aggregate(average(RATING_FIELD).alias(AVG_RATING_ALIAS))
-                    .toScalarExpression().alias(AVERAGE_RATING_FIELD)
+                    .toScalarExpression().alias(AVERAGE_RATING_FIELD),
+                firestore.pipeline()
+                    .collectionGroup(LIKES_COLLECTION)
+                    .where(field(RECIPE_ID_FIELD)
+                        .equal(variable(CURRENT_RECIPE_ID_VAR)))
+                    .aggregate(countAll().alias(LIKES_COUNT_ALIAS))
+                    .toScalarExpression().alias(LIKES_FIELD)
             )
 
         if (filterOptions.rating > 0) {
@@ -264,12 +271,13 @@ class DatabaseRemoteDataSource @Inject constructor(
         private const val SERVINGS_FIELD = "servings"
         private const val INSTRUCTIONS_FIELD = "instructions"
         private const val INGREDIENTS_FIELD = "ingredients"
+        private const val RECIPE_ID_FIELD = "recipeId"
 
         //Field aliases
         private const val AVG_RATING_ALIAS = "avg_rating"
         private const val TAG_NAME_ALIAS = "tagName"
         private const val TAG_COUNT_ALIAS = "tagCount"
-        private const val LIKED_COUNT_ALIAS = "likesCount"
+        private const val LIKES_COUNT_ALIAS = "likesCount"
         private const val SCORE_ALIAS = "score"
 
         //Variables
