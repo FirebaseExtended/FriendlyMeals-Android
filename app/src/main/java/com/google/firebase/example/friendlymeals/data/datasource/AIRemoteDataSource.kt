@@ -3,15 +3,18 @@ package com.google.firebase.example.friendlymeals.data.datasource
 import android.graphics.Bitmap
 import android.util.Log
 import com.google.firebase.Firebase
+import com.google.firebase.ai.DownloadStatus.DownloadCompleted
+import com.google.firebase.ai.DownloadStatus.DownloadFailed
+import com.google.firebase.ai.DownloadStatus.DownloadInProgress
+import com.google.firebase.ai.DownloadStatus.DownloadStarted
 import com.google.firebase.ai.FirebaseAI
 import com.google.firebase.ai.InferenceMode
 import com.google.firebase.ai.InferenceSource
 import com.google.firebase.ai.OnDeviceConfig
-import com.google.firebase.ai.TemplateGenerativeModel
-import com.google.firebase.ai.TemplateImagenModel
-import com.google.firebase.ai.ondevice.DownloadStatus
-import com.google.firebase.ai.ondevice.FirebaseAIOnDevice
-import com.google.firebase.ai.ondevice.OnDeviceModelStatus
+import com.google.firebase.ai.OnDeviceModelStatus.Companion.AVAILABLE
+import com.google.firebase.ai.OnDeviceModelStatus.Companion.DOWNLOADABLE
+import com.google.firebase.ai.OnDeviceModelStatus.Companion.DOWNLOADING
+import com.google.firebase.ai.OnDeviceModelStatus.Companion.UNAVAILABLE
 import com.google.firebase.ai.type.ImagePart
 import com.google.firebase.ai.type.PublicPreviewAPI
 import com.google.firebase.ai.type.content
@@ -25,9 +28,7 @@ import javax.inject.Inject
 
 @OptIn(PublicPreviewAPI::class)
 class AIRemoteDataSource @Inject constructor(
-    private val aiModel: FirebaseAI,
-    private val generativeModel: TemplateGenerativeModel,
-    private val imagenModel: TemplateImagenModel,
+    aiModel: FirebaseAI,
     private val remoteConfig: FirebaseRemoteConfig
 ) {
     private val json = Json { ignoreUnknownKeys = true }
@@ -36,7 +37,8 @@ class AIRemoteDataSource @Inject constructor(
         onDeviceConfig = OnDeviceConfig(mode = InferenceMode.PREFER_IN_CLOUD)
     )
 
-    @OptIn(PublicPreviewAPI::class)
+    private val templateGenerativeModel = aiModel.templateGenerativeModel()
+
     suspend fun generateIngredients(image: Bitmap): String {
         // Adding a Performance Monitoring trace is completely optional. Traces can help you
         // measure how long it takes to generate ingredients on device and in cloud.
@@ -63,7 +65,7 @@ class AIRemoteDataSource @Inject constructor(
     }
 
     suspend fun generateRecipe(ingredients: String, notes: String): RecipeSchema? {
-        val response = generativeModel.generateContent(
+        val response = templateGenerativeModel.generateContent(
             templateId = remoteConfig.getString(GENERATE_RECIPE_KEY),
             inputs = buildMap {
                 put(INGREDIENTS_FIELD, ingredients)
@@ -79,7 +81,7 @@ class AIRemoteDataSource @Inject constructor(
     }
 
     suspend fun generateRecipePhoto(recipeTitle: String): Bitmap? {
-        val response = generativeModel.generateContent(
+        val response = templateGenerativeModel.generateContent(
             templateId = remoteConfig.getString(GENERATE_RECIPE_PHOTO_GEMINI_KEY),
             inputs = mapOf(RECIPE_TITLE_FIELD to recipeTitle)
         )
@@ -88,17 +90,8 @@ class AIRemoteDataSource @Inject constructor(
             ?.filterIsInstance<ImagePart>()?.firstOrNull()?.image
     }
 
-    suspend fun generateRecipePhotoImagen(recipeTitle: String): Bitmap? {
-        val response = imagenModel.generateImages(
-            templateId = remoteConfig.getString(GENERATE_RECIPE_PHOTO_IMAGEN_KEY),
-            inputs = mapOf(RECIPE_TITLE_FIELD to recipeTitle)
-        )
-
-        return response.images.firstOrNull()?.asBitmap()
-    }
-
     suspend fun scanMeal(imageData: String): MealSchema? {
-        val response = generativeModel.generateContent(
+        val response = templateGenerativeModel.generateContent(
             templateId = remoteConfig.getString(SCAN_MEAL_KEY),
             inputs = mapOf(
                 MIME_TYPE_FIELD to MIME_TYPE_VALUE,
@@ -112,31 +105,31 @@ class AIRemoteDataSource @Inject constructor(
     }
 
     suspend fun loadOnDeviceModel() {
-        when (FirebaseAIOnDevice.checkStatus()) {
-            OnDeviceModelStatus.UNAVAILABLE -> {
+        when (hybridGenerativeModel.onDeviceExtension?.checkStatus()) {
+            UNAVAILABLE -> {
                 Log.i(TAG, "On-device model is unavailable")
             }
-            OnDeviceModelStatus.DOWNLOADABLE -> {
-                FirebaseAIOnDevice.download().collect { status ->
+            DOWNLOADABLE -> {
+                hybridGenerativeModel.onDeviceExtension?.download()?.collect { status ->
                     when (status) {
-                        is DownloadStatus.DownloadStarted ->
+                        is DownloadStarted ->
                             Log.i(TAG, "Starting download - ${status.bytesToDownload}")
 
-                        is DownloadStatus.DownloadInProgress ->
+                        is DownloadInProgress ->
                             Log.i(TAG, "Download in progress ${status.totalBytesDownloaded} bytes downloaded")
 
-                        is DownloadStatus.DownloadCompleted ->
+                        is DownloadCompleted ->
                             Log.i(TAG, "On-device model download complete")
 
-                        is DownloadStatus.DownloadFailed ->
+                        is DownloadFailed ->
                             Log.e(TAG, "Download failed $status")
                     }
                 }
             }
-            OnDeviceModelStatus.DOWNLOADING -> {
+            DOWNLOADING -> {
                 Log.i(TAG, "On-device model is being downloaded")
             }
-            OnDeviceModelStatus.AVAILABLE -> {
+            AVAILABLE -> {
                 Log.i(TAG, "On-device model is available")
             }
         }
@@ -146,7 +139,6 @@ class AIRemoteDataSource @Inject constructor(
         //Remote Config Keys
         private const val GENERATE_RECIPE_KEY = "generate_recipe"
         private const val GENERATE_RECIPE_PHOTO_GEMINI_KEY = "generate_recipe_photo_gemini"
-        private const val GENERATE_RECIPE_PHOTO_IMAGEN_KEY = "generate_recipe_photo_imagen"
         private const val SCAN_MEAL_KEY = "scan_meal"
         private const val HYBRID_CLOUD_MODEL_KEY = "hybrid_cloud_model"
         private const val HYBRID_INGREDIENTS_PROMPT_KEY = "hybrid_ingredients_prompt"
