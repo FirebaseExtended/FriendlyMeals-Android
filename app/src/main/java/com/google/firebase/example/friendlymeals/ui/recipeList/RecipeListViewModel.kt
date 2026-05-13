@@ -1,7 +1,6 @@
 package com.google.firebase.example.friendlymeals.ui.recipeList
 
 import com.google.firebase.example.friendlymeals.MainViewModel
-import com.google.firebase.example.friendlymeals.data.model.Tag
 import com.google.firebase.example.friendlymeals.data.repository.AuthRepository
 import com.google.firebase.example.friendlymeals.data.repository.DatabaseRepository
 import com.google.firebase.example.friendlymeals.ui.recipeList.filter.FilterOptions
@@ -21,8 +20,8 @@ class RecipeListViewModel @Inject constructor(
     val filterOptions: StateFlow<FilterOptions>
         get() = _filterOptions.asStateFlow()
 
-    private val _tags = MutableStateFlow(listOf<Tag>())
-    val tags: StateFlow<List<Tag>>
+    private val _tags = MutableStateFlow(listOf<String>())
+    val tags: StateFlow<List<String>>
         get() = _tags.asStateFlow()
 
     private val _recipes = MutableStateFlow<List<RecipeListItem>>(listOf())
@@ -38,6 +37,10 @@ class RecipeListViewModel @Inject constructor(
 
     fun updateRecipeTitle(recipeName: String) {
         _filterOptions.value = _filterOptions.value.copy(recipeTitle = recipeName)
+    }
+
+    fun updateSearchQuery(query: String) {
+        _filterOptions.value = _filterOptions.value.copy(searchQuery = query)
     }
 
     fun updateFilterByMine() {
