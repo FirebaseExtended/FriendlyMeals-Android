@@ -1,6 +1,14 @@
 package com.google.firebase.example.friendlymeals.ui.recipe
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -54,7 +62,8 @@ data class RecipeRoute(val recipeId: String)
 @Composable
 fun RecipeScreen(
     viewModel: RecipeViewModel = hiltViewModel(),
-    navigateBack: () -> Unit
+    navigateBack: () -> Unit,
+    navigateToLiveAssistant: (String) -> Unit
 ) {
     val recipeViewState = viewModel.recipeViewState.collectAsStateWithLifecycle()
 
@@ -62,7 +71,10 @@ fun RecipeScreen(
         navigateBack = navigateBack,
         toggleFavorite = viewModel::toggleFavorite,
         leaveReview = viewModel::leaveReview,
-        recipeViewState = recipeViewState.value
+        recipeViewState = recipeViewState.value,
+        onLiveAssistantClick = {
+            navigateToLiveAssistant(recipeViewState.value.recipeId)
+        }
     )
 }
 
@@ -71,8 +83,24 @@ fun RecipeScreenContent(
     navigateBack: () -> Unit = {},
     toggleFavorite: () -> Unit = {},
     leaveReview: (Int) -> Unit = {},
-    recipeViewState: RecipeViewState
+    recipeViewState: RecipeViewState,
+    onLiveAssistantClick: () -> Unit = {}
 ) {
+    val context = LocalContext.current
+    val multiplePermissionsLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val cameraGranted = permissions[Manifest.permission.CAMERA] == true
+        val audioGranted = permissions[Manifest.permission.RECORD_AUDIO] == true
+        if (cameraGranted && audioGranted) {
+            onLiveAssistantClick()
+        } else {
+            Toast.makeText(context, "Camera and Microphone permissions are required to use the Live Assistant.", Toast.LENGTH_LONG).show()
+        }
+    }
+    val cameraPermissionGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+    val audioPermissionGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+
     val favoriteIcon = if (recipeViewState.favorite) {
         painterResource(R.drawable.ic_favorite_filled)
     } else {
@@ -164,6 +192,42 @@ fun RecipeScreenContent(
                             fontWeight = FontWeight.Bold,
                             lineHeight = 34.sp
                         )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Button(
+                            onClick = {
+                                if (cameraPermissionGranted && audioPermissionGranted) {
+                                    onLiveAssistantClick()
+                                } else {
+                                    multiplePermissionsLauncher.launch(
+                                        arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
+                                    )
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Teal),
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.fillMaxWidth().height(52.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_cook),
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Live Cooking Assistant",
+                                    color = Color.White,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
 
                         Spacer(modifier = Modifier.height(24.dp))
 

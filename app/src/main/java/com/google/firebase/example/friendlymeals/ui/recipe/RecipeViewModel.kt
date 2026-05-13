@@ -35,6 +35,7 @@ class RecipeViewModel @Inject constructor(
     fun loadRecipe() {
         launchCatching {
             _recipeViewState.value = RecipeViewState(
+                recipeId = recipeId,
                 recipe = databaseRepository.getRecipe(recipeId),
                 favorite = loadFavorite(),
                 rating = loadRating()

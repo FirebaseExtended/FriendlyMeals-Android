@@ -1,5 +1,6 @@
 [versions]
 agp = "9.2.1"
+camerax = "1.4.1"
 coilCompose = "2.7.0"
 exifinterface = "1.4.2"
 firebaseAi = "17.12.0"
@@ -15,6 +16,7 @@ activityCompose = "1.13.0"
 composeBom = "2026.05.00"
 googleServices = "4.4.4"
 googleHilt = "2.59.2"
+guava = "33.4.0-android"
 googleKotlinKsp = "2.3.2"
 hiltAndroidCompiler = "2.59.2"
 coreSplashscreen = "1.2.0"
@@ -58,6 +60,11 @@ androidx-navigation-compose = { module = "androidx.navigation:navigation-compose
 androidx-constraintlayout-compose = { module = "androidx.constraintlayout:constraintlayout-compose", version.ref = "constraintlayoutCompose" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 richtext-commonmark = { module = "com.halilibo.compose-richtext:richtext-commonmark", version.ref = "richtextCommonmark" }
+androidx-camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "camerax" }
+androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camerax" }
+androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camerax" }
+androidx-camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camerax" }
+guava = { module = "com.google.guava:guava", version.ref = "guava" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

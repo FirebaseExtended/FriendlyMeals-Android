@@ -23,6 +23,8 @@ import androidx.navigation.navigation
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.google.firebase.example.friendlymeals.ui.generate.GenerateRoute
 import com.google.firebase.example.friendlymeals.ui.generate.GenerateScreen
+import com.google.firebase.example.friendlymeals.ui.live.LiveAssistantRoute
+import com.google.firebase.example.friendlymeals.ui.live.LiveAssistantScreen
 import com.google.firebase.example.friendlymeals.ui.recipe.RecipeRoute
 import com.google.firebase.example.friendlymeals.ui.recipe.RecipeScreen
 import com.google.firebase.example.friendlymeals.ui.recipeList.RecipeListGraph
@@ -121,6 +123,16 @@ class MainActivity : ComponentActivity() {
                             }
                             composable<RecipeRoute> {
                                 RecipeScreen(
+                                    navigateBack = { navController.popBackStack() },
+                                    navigateToLiveAssistant = { recipeId ->
+                                        navController.navigate(LiveAssistantRoute(recipeId)) {
+                                            launchSingleTop = true
+                                        }
+                                    }
+                                )
+                            }
+                            composable<LiveAssistantRoute> {
+                                LiveAssistantScreen(
                                     navigateBack = { navController.popBackStack() }
                                 )
                             }
