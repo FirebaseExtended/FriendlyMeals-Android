@@ -133,7 +133,11 @@ class MainActivity : ComponentActivity() {
                             }
                             composable<LiveAssistantRoute> {
                                 LiveAssistantScreen(
-                                    navigateBack = { navController.popBackStack() }
+                                    navigateBack = { navController.popBackStack() },
+                                    showError = {
+                                        val message = this@MainActivity.getString(R.string.camera_error_message)
+                                        scope.launch { snackbarHostState.showSnackbar(message) }
+                                    }
                                 )
                             }
                         }

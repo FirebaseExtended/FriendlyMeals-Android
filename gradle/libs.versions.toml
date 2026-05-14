@@ -26,6 +26,7 @@ constraintlayoutCompose = "1.1.1"
 kotlinxSerializationJson = "1.11.0"
 richtextCommonmark = "1.0.0-alpha04"
 firebasePerf = "2.0.2"
+cameraView = "1.6.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -65,6 +66,7 @@ androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", 
 androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camerax" }
 androidx-camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camerax" }
 guava = { module = "com.google.guava:guava", version.ref = "guava" }
+camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "cameraView" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

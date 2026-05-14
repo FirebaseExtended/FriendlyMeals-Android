@@ -19,4 +19,12 @@
         <key>generate_recipe</key>
         <value>generate-recipe-template-v1-0-0</value>
     </entry>
+    <entry>
+        <key>live_model_name</key>
+        <value>gemini-2.5-flash-native-audio-preview-12-2025</value>
+    </entry>
+    <entry>
+        <key>live_model_prompt</key>
+        <value>tbd</value>
+    </entry>
 </defaults>

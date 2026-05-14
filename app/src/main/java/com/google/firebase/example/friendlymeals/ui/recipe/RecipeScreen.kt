@@ -1,6 +1,7 @@
 package com.google.firebase.example.friendlymeals.ui.recipe
 
-import android.Manifest
+import android.Manifest.permission.CAMERA
+import android.Manifest.permission.RECORD_AUDIO
 import android.content.pm.PackageManager
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -90,16 +91,16 @@ fun RecipeScreenContent(
     val multiplePermissionsLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
-        val cameraGranted = permissions[Manifest.permission.CAMERA] == true
-        val audioGranted = permissions[Manifest.permission.RECORD_AUDIO] == true
+        val cameraGranted = permissions[CAMERA] == true
+        val audioGranted = permissions[RECORD_AUDIO] == true
         if (cameraGranted && audioGranted) {
             onLiveAssistantClick()
         } else {
             Toast.makeText(context, "Camera and Microphone permissions are required to use the Live Assistant.", Toast.LENGTH_LONG).show()
         }
     }
-    val cameraPermissionGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
-    val audioPermissionGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+    val cameraPermissionGranted = ContextCompat.checkSelfPermission(context, CAMERA) == PackageManager.PERMISSION_GRANTED
+    val audioPermissionGranted = ContextCompat.checkSelfPermission(context, RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
 
     val favoriteIcon = if (recipeViewState.favorite) {
         painterResource(R.drawable.ic_favorite_filled)
@@ -158,7 +159,7 @@ fun RecipeScreenContent(
                             ) {
                                 Icon(
                                     painter = painterResource(R.drawable.ic_arrow_back),
-                                    contentDescription = stringResource(id = R.string.recipe_back_button_content_description),
+                                    contentDescription = stringResource(id = R.string.back_button_content_description),
                                     tint = TextColor
                                 )
                             }
@@ -201,7 +202,7 @@ fun RecipeScreenContent(
                                     onLiveAssistantClick()
                                 } else {
                                     multiplePermissionsLauncher.launch(
-                                        arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
+                                        arrayOf(CAMERA, RECORD_AUDIO)
                                     )
                                 }
                             },

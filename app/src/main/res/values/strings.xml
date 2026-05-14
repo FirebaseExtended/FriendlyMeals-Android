@@ -3,6 +3,7 @@
     <string name="ingredients_hint">Enter your list of ingredients</string>
     <string name="notes_hint">Any notes or preferred cuisines?</string>
     <string name="generate_recipe_button">Generate recipe</string>
+    <string name="back_button_content_description">Back</string>
     <string name="logo_content_description">Friendly Meals Logo</string>
     <string name="generate_new_recipe_title">New recipe</string>
     <string name="generate_ingredients_label">List your ingredients</string>
@@ -13,7 +14,6 @@
     <string name="generate_recipe_button_text">Generate Recipe</string>
     <string name="recipe_image_content_description">Recipe image</string>
     <string name="recipe_image_load_error">Could not load image</string>
-    <string name="recipe_back_button_content_description">Back</string>
     <string name="recipe_favorite_button_content_description">Favorite</string>
     <string name="recipe_prep_time_label">Prep Time</string>
     <string name="recipe_cook_time_label">Cook Time</string>
@@ -53,4 +53,7 @@
     <string name="nav_bar_recipe_list">Recipes</string>
     <string name="camera_text">Take a picture of ingredients</string>
     <string name="error_message">Sorry, something went wrong :(</string>
+    <string name="camera_error_message">Error loading camera</string>
+    <string name="live_assistant_title">Live Cooking Assistant</string>
+    <string name="live_assistant_hint">Point your camera at your cooking and ask questions</string>
 </resources>

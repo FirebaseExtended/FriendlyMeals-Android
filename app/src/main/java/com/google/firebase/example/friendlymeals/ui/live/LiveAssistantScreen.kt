@@ -1,8 +1,9 @@
 package com.google.firebase.example.friendlymeals.ui.live
 
-import android.util.Log
-import androidx.camera.core.CameraSelector
+import android.graphics.Bitmap
+import androidx.camera.core.CameraSelector.DEFAULT_BACK_CAMERA
 import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
@@ -24,23 +25,24 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.content.ContextCompat
+import androidx.core.content.ContextCompat.getMainExecutor
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.firebase.example.friendlymeals.R
+import com.google.firebase.example.friendlymeals.data.model.Recipe
+import com.google.firebase.example.friendlymeals.ui.theme.FriendlyMealsTheme
 import com.google.firebase.example.friendlymeals.ui.theme.Teal
 import kotlinx.serialization.Serializable
 
@@ -50,9 +52,26 @@ data class LiveAssistantRoute(val recipeId: String)
 @Composable
 fun LiveAssistantScreen(
     viewModel: LiveAssistantViewModel = hiltViewModel(),
-    navigateBack: () -> Unit
+    navigateBack: () -> Unit,
+    showError: () -> Unit
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val uiState = viewModel.uiState.collectAsStateWithLifecycle()
+
+    LiveAssistantScreenContent(
+        uiState = uiState.value,
+        navigateBack = navigateBack,
+        sendVideoFrame = viewModel::sendVideoFrame,
+        showError = showError
+    )
+}
+
+@Composable
+fun LiveAssistantScreenContent(
+    uiState: LiveAssistantUiState,
+    navigateBack: () -> Unit = {},
+    sendVideoFrame: (Bitmap) -> Unit = {},
+    showError: () -> Unit = {}
+) {
     val lifecycleOwner = LocalLifecycleOwner.current
 
     Scaffold { innerPadding ->
@@ -63,7 +82,6 @@ fun LiveAssistantScreen(
                 .background(Color.Black),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Custom Top Bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -78,29 +96,37 @@ fun LiveAssistantScreen(
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.ic_arrow_back),
-                        contentDescription = "Back",
+                        contentDescription = stringResource(id = R.string.back_button_content_description),
                         tint = Color.White
                     )
                 }
+
                 Spacer(modifier = Modifier.width(16.dp))
+
                 Text(
-                    text = "Live Cooking Assistant",
+                    text = stringResource(id = R.string.live_assistant_title),
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
             }
 
-            when (val state = uiState) {
+            when (uiState) {
                 is LiveAssistantUiState.Loading -> {
-                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    Box(
+                        modifier = Modifier.weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
                         CircularProgressIndicator(color = Teal)
                     }
                 }
                 is LiveAssistantUiState.Error -> {
-                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    Box(
+                        modifier = Modifier.weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Text(
-                            text = state.message,
+                            text = uiState.message,
                             color = Color.Red,
                             modifier = Modifier.padding(16.dp),
                             textAlign = TextAlign.Center
@@ -115,45 +141,44 @@ fun LiveAssistantScreen(
                             .padding(horizontal = 16.dp, vertical = 8.dp)
                             .clip(RoundedCornerShape(24.dp))
                     ) {
-                        // CameraX Live Preview streaming to ViewModel
                         AndroidView(
-                            factory = { ctx ->
-                                val previewView = PreviewView(ctx)
-                                val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
+                            factory = { context ->
+                                val previewView = PreviewView(context)
+                                val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
+
                                 cameraProviderFuture.addListener({
                                     val cameraProvider = cameraProviderFuture.get()
                                     val preview = Preview.Builder().build().also {
                                         it.surfaceProvider = previewView.surfaceProvider
                                     }
                                     val imageAnalyzer = ImageAnalysis.Builder()
-                                        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                                        .setBackpressureStrategy(STRATEGY_KEEP_ONLY_LATEST)
                                         .build()
                                         .also { analysis ->
-                                            analysis.setAnalyzer(ContextCompat.getMainExecutor(ctx)) { imageProxy ->
+                                            analysis.setAnalyzer(getMainExecutor(context)) { imageProxy ->
                                                 val bitmap = imageProxy.toBitmap()
-                                                viewModel.sendVideoFrame(bitmap)
+                                                sendVideoFrame(bitmap)
                                                 imageProxy.close()
                                             }
                                         }
-                                    val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+
                                     try {
                                         cameraProvider.unbindAll()
                                         cameraProvider.bindToLifecycle(
                                             lifecycleOwner,
-                                            cameraSelector,
+                                            DEFAULT_BACK_CAMERA,
                                             preview,
                                             imageAnalyzer
                                         )
-                                    } catch (exc: Exception) {
-                                        Log.e("LiveAssistantScreen", "Use case binding failed", exc)
+                                    } catch (_: Exception) {
+                                        showError()
                                     }
-                                }, ContextCompat.getMainExecutor(ctx))
+                                }, getMainExecutor(context))
                                 previewView
                             },
                             modifier = Modifier.fillMaxSize()
                         )
 
-                        // Overlay instructions
                         Box(
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
@@ -163,7 +188,7 @@ fun LiveAssistantScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "Point your camera at your cooking and ask questions like:\n\"Is this the expected texture?\"",
+                                text = stringResource(id = R.string.live_assistant_hint),
                                 color = Color.White,
                                 fontSize = 14.sp,
                                 textAlign = TextAlign.Center
@@ -173,5 +198,15 @@ fun LiveAssistantScreen(
                 }
             }
         }
+    }
+}
+
+@androidx.compose.ui.tooling.preview.Preview
+@Composable
+fun LiveAssistantScreenPreview() {
+    FriendlyMealsTheme {
+        LiveAssistantScreenContent(
+            uiState = LiveAssistantUiState.Success(Recipe())
+        )
     }
 }
