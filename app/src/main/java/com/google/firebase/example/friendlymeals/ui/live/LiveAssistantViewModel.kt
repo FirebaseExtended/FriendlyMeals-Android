@@ -10,7 +10,9 @@ import com.google.firebase.ai.type.InlineData
 import com.google.firebase.ai.type.LiveSession
 import com.google.firebase.ai.type.PublicPreviewAPI
 import com.google.firebase.example.friendlymeals.MainViewModel
+import com.google.firebase.example.friendlymeals.data.model.GroceryItem
 import com.google.firebase.example.friendlymeals.data.model.Recipe
+import com.google.firebase.example.friendlymeals.data.repository.AuthRepository
 import com.google.firebase.example.friendlymeals.data.repository.DatabaseRepository
 import com.google.firebase.example.friendlymeals.data.repository.LiveAIRepository
 import com.google.firebase.example.friendlymeals.ui.live.LiveAssistantUiState.Loading
@@ -19,6 +21,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import java.io.ByteArrayOutputStream
 import javax.inject.Inject
 
@@ -26,6 +29,7 @@ import javax.inject.Inject
 @OptIn(PublicPreviewAPI::class)
 class LiveAssistantViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
+    private val authRepository: AuthRepository,
     private val databaseRepository: DatabaseRepository,
     private val liveAIRepository: LiveAIRepository
 ) : MainViewModel() {
@@ -69,6 +73,36 @@ class LiveAssistantViewModel @Inject constructor(
     }
 
     private fun handler(functionCall: FunctionCallPart): FunctionResponsePart {
+        if (functionCall.name == ADD_INGREDIENTS_TOOL_NAME) {
+            val ingredient = functionCall.args[INGREDIENT_FIELD_NAME]
+            val ingredientName = when (ingredient) {
+                is JsonPrimitive -> ingredient.content
+                else -> ingredient?.toString()
+            }?.trim()?.removeSurrounding("\"")
+
+            if (!ingredientName.isNullOrBlank()) {
+                val userId = authRepository.currentUser?.uid.orEmpty()
+                if (userId.isNotEmpty()) {
+                    launchCatching {
+                        val item = GroceryItem(
+                            userId = userId,
+                            name = ingredientName,
+                            checked = false
+                        )
+                        databaseRepository.addGroceryItem(item)
+                    }
+                }
+            }
+
+            return FunctionResponsePart(
+                functionCall.name,
+                JsonObject(mapOf(
+                    "result" to JsonPrimitive("Successfully added $ingredientName to grocery list")
+                )),
+                functionCall.id
+            )
+        }
+
         return FunctionResponsePart(functionCall.name, JsonObject(emptyMap()), functionCall.id)
     }
 
@@ -109,8 +143,13 @@ class LiveAssistantViewModel @Inject constructor(
     }
 
     companion object {
+        //Connection config
         private const val MIME_TYPE = "image/jpeg"
         private const val RECIPE_ERROR = "Failed to load recipe"
         private const val CONNECTION_ERROR = "Failed to connect to live assistant"
+
+        //Tool config
+        private const val INGREDIENT_FIELD_NAME = "ingredient"
+        private const val ADD_INGREDIENTS_TOOL_NAME = "addIngredientToGroceryList"
     }
 }

@@ -1,6 +1,7 @@
 package com.google.firebase.example.friendlymeals.data.datasource
 
 import android.util.Log
+import com.google.firebase.example.friendlymeals.data.model.GroceryItem
 import com.google.firebase.example.friendlymeals.data.model.Recipe
 import com.google.firebase.example.friendlymeals.data.model.Review
 import com.google.firebase.example.friendlymeals.data.model.Like
@@ -19,6 +20,9 @@ import com.google.firebase.firestore.pipeline.Expression.Companion.documentId
 import com.google.firebase.firestore.pipeline.Expression.Companion.field
 import com.google.firebase.firestore.pipeline.Expression.Companion.variable
 import com.google.firebase.firestore.pipeline.SearchStage
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import kotlin.collections.first
@@ -251,12 +255,73 @@ class DatabaseRemoteDataSource @Inject constructor(
         }
     }
 
+    fun getGroceriesFlow(userId: String): Flow<List<GroceryItem>> = callbackFlow {
+        if (userId.isEmpty()) {
+            trySend(emptyList())
+            close()
+            return@callbackFlow
+        }
+
+        val listener = firestore.collection(GROCERIES_COLLECTION)
+            .whereEqualTo(USER_ID_FIELD, userId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
+
+                if (snapshot != null) {
+                    val items = snapshot.documents.mapNotNull { doc ->
+                        doc.toObject(GroceryItem::class.java)?.copy(id = doc.id)
+                    }
+                    trySend(items)
+                }
+            }
+        awaitClose { listener.remove() }
+    }
+
+    suspend fun addGroceryItem(item: GroceryItem) {
+        val docRef = firestore.collection(GROCERIES_COLLECTION).document()
+        val itemWithId = item.copy(id = docRef.id)
+        docRef.set(itemWithId).await()
+    }
+
+    suspend fun updateGroceryItemChecked(itemId: String, checked: Boolean) {
+        firestore.collection(GROCERIES_COLLECTION).document(itemId)
+            .update(CHECKED_FIELD, checked).await()
+    }
+
+    suspend fun deleteGroceryItem(itemId: String) {
+        firestore.collection(GROCERIES_COLLECTION).document(itemId)
+            .delete().await()
+    }
+
+    suspend fun addIngredientsToGroceries(userId: String, ingredients: List<String>) {
+        if (userId.isEmpty() || ingredients.isEmpty()) return
+
+        val batch = firestore.batch()
+        val collection = firestore.collection(GROCERIES_COLLECTION)
+
+        for (ingredient in ingredients) {
+            val docRef = collection.document()
+            val item = GroceryItem(
+                id = docRef.id,
+                userId = userId,
+                name = ingredient,
+                checked = false
+            )
+            batch.set(docRef, item)
+        }
+        batch.commit().await()
+    }
+
     companion object {
         //Collections
         private const val USERS_COLLECTION = "users"
         private const val RECIPES_COLLECTION = "recipes"
         private const val LIKES_COLLECTION = "likes"
         private const val REVIEWS_SUBCOLLECTION = "reviews"
+        private const val GROCERIES_COLLECTION = "groceries"
 
         //Fields
         private const val RATING_FIELD = "rating"
@@ -272,6 +337,8 @@ class DatabaseRemoteDataSource @Inject constructor(
         private const val INSTRUCTIONS_FIELD = "instructions"
         private const val INGREDIENTS_FIELD = "ingredients"
         private const val RECIPE_ID_FIELD = "recipeId"
+        private const val USER_ID_FIELD = "userId"
+        private const val CHECKED_FIELD = "checked"
 
         //Field aliases
         private const val AVG_RATING_ALIAS = "avg_rating"

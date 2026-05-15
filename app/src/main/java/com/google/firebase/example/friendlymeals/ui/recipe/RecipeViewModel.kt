@@ -85,4 +85,13 @@ class RecipeViewModel @Inject constructor(
             )
         }
     }
+
+    fun addIngredientsToGroceryList(ingredients: List<String>, onSuccess: () -> Unit) {
+        if (userId.isEmpty() || ingredients.isEmpty()) return
+
+        launchCatching {
+            databaseRepository.addIngredientsToGroceries(userId, ingredients)
+            onSuccess()
+        }
+    }
 }

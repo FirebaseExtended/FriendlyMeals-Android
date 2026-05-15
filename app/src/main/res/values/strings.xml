@@ -56,4 +56,12 @@
     <string name="camera_error_message">Error loading camera</string>
     <string name="live_assistant_title">Live Cooking Assistant</string>
     <string name="live_assistant_hint">Point your camera at your cooking and ask questions</string>
+    <string name="nav_bar_grocery_list">Grocery List</string>
+    <string name="grocery_list_title">Grocery List</string>
+    <string name="add_grocery_item_hint">Add an ingredient…</string>
+    <string name="add_button">Add</string>
+    <string name="delete_button_content_description">Delete</string>
+    <string name="add_to_grocery_list_button">Add ingredients to Grocery List</string>
+    <string name="added_to_grocery_list_toast">Added to Grocery List!</string>
+    <string name="grocery_list_empty_message">Your grocery list is empty</string>
 </resources>

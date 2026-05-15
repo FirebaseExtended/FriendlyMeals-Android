@@ -23,6 +23,8 @@ import androidx.navigation.navigation
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.google.firebase.example.friendlymeals.ui.generate.GenerateRoute
 import com.google.firebase.example.friendlymeals.ui.generate.GenerateScreen
+import com.google.firebase.example.friendlymeals.ui.groceryList.GroceryListRoute
+import com.google.firebase.example.friendlymeals.ui.groceryList.GroceryListScreen
 import com.google.firebase.example.friendlymeals.ui.live.LiveAssistantRoute
 import com.google.firebase.example.friendlymeals.ui.live.LiveAssistantScreen
 import com.google.firebase.example.friendlymeals.ui.recipe.RecipeRoute
@@ -139,6 +141,9 @@ class MainActivity : ComponentActivity() {
                                         scope.launch { snackbarHostState.showSnackbar(message) }
                                     }
                                 )
+                            }
+                            composable<GroceryListRoute> {
+                                GroceryListScreen()
                             }
                         }
                     }

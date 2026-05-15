@@ -15,6 +15,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import com.google.firebase.example.friendlymeals.R
 import com.google.firebase.example.friendlymeals.ui.generate.GenerateRoute
+import com.google.firebase.example.friendlymeals.ui.groceryList.GroceryListRoute
 import com.google.firebase.example.friendlymeals.ui.recipeList.RecipeListRoute
 import com.google.firebase.example.friendlymeals.ui.scanMeal.ScanMealRoute
 import com.google.firebase.example.friendlymeals.ui.theme.Teal
@@ -23,6 +24,7 @@ sealed class BottomNavItem(val route: Any, val icon: Int, val label: Int) {
     object ScanMeal : BottomNavItem(ScanMealRoute, R.drawable.ic_camera, R.string.nav_bar_scan_meal)
     object Generate : BottomNavItem(GenerateRoute, R.drawable.ic_generate, R.string.nav_bar_generate)
     object RecipeList : BottomNavItem(RecipeListRoute, R.drawable.ic_dine, R.string.nav_bar_recipe_list)
+    object GroceryList : BottomNavItem(GroceryListRoute, R.drawable.ic_check, R.string.nav_bar_grocery_list)
 }
 
 @Composable
@@ -32,7 +34,8 @@ fun BottomNavBar(navigateTo: (Any) -> Unit) {
     val items = listOf(
         BottomNavItem.ScanMeal,
         BottomNavItem.Generate,
-        BottomNavItem.RecipeList
+        BottomNavItem.RecipeList,
+        BottomNavItem.GroceryList
     )
 
     NavigationBar {

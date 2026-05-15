@@ -67,6 +67,8 @@ fun RecipeScreen(
     navigateToLiveAssistant: (String) -> Unit
 ) {
     val recipeViewState = viewModel.recipeViewState.collectAsStateWithLifecycle()
+    val groceryListToast = stringResource(R.string.added_to_grocery_list_toast)
+    val context = LocalContext.current
 
     RecipeScreenContent(
         navigateBack = navigateBack,
@@ -75,6 +77,11 @@ fun RecipeScreen(
         recipeViewState = recipeViewState.value,
         onLiveAssistantClick = {
             navigateToLiveAssistant(recipeViewState.value.recipeId)
+        },
+        onAddIngredientsToGrocery = {
+            viewModel.addIngredientsToGroceryList(recipeViewState.value.recipe.ingredients) {
+                Toast.makeText(context, groceryListToast, Toast.LENGTH_SHORT).show()
+            }
         }
     )
 }
@@ -85,7 +92,8 @@ fun RecipeScreenContent(
     toggleFavorite: () -> Unit = {},
     leaveReview: (Int) -> Unit = {},
     recipeViewState: RecipeViewState,
-    onLiveAssistantClick: () -> Unit = {}
+    onLiveAssistantClick: () -> Unit = {},
+    onAddIngredientsToGrocery: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val multiplePermissionsLauncher = rememberLauncherForActivityResult(
@@ -281,6 +289,38 @@ fun RecipeScreenContent(
 
                                 recipeViewState.recipe.ingredients.forEach {
                                     IngredientRow(it)
+                                }
+
+                                Spacer(modifier = Modifier.height(20.dp))
+
+                                Button(
+                                    onClick = { onAddIngredientsToGrocery() },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = LightTeal,
+                                        contentColor = Teal
+                                    ),
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier.fillMaxWidth().height(48.dp)
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(R.drawable.ic_check),
+                                            contentDescription = null,
+                                            tint = Teal,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+
+                                        Spacer(modifier = Modifier.width(8.dp))
+
+                                        Text(
+                                            text = stringResource(R.string.add_to_grocery_list_button),
+                                            fontSize = 15.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
                                 }
                             }
                         }
