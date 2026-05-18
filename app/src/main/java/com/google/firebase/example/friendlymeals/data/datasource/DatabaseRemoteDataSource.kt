@@ -20,9 +20,10 @@ import com.google.firebase.firestore.pipeline.Expression.Companion.documentId
 import com.google.firebase.firestore.pipeline.Expression.Companion.field
 import com.google.firebase.firestore.pipeline.Expression.Companion.variable
 import com.google.firebase.firestore.pipeline.SearchStage
-import kotlinx.coroutines.channels.awaitClose
+import com.google.firebase.firestore.snapshots
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import kotlin.collections.first
@@ -255,29 +256,19 @@ class DatabaseRemoteDataSource @Inject constructor(
         }
     }
 
-    fun getGroceriesFlow(userId: String): Flow<List<GroceryItem>> = callbackFlow {
+    fun getGroceriesFlow(userId: String): Flow<List<GroceryItem>> {
         if (userId.isEmpty()) {
-            trySend(emptyList())
-            close()
-            return@callbackFlow
+            return flowOf(emptyList())
         }
 
-        val listener = firestore.collection(GROCERIES_COLLECTION)
+        return firestore.collection(GROCERIES_COLLECTION)
             .whereEqualTo(USER_ID_FIELD, userId)
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    close(error)
-                    return@addSnapshotListener
-                }
-
-                if (snapshot != null) {
-                    val items = snapshot.documents.mapNotNull { doc ->
-                        doc.toObject(GroceryItem::class.java)?.copy(id = doc.id)
-                    }
-                    trySend(items)
+            .snapshots()
+            .mapNotNull { snapshot ->
+                snapshot.documents.mapNotNull { doc ->
+                    doc.toObject(GroceryItem::class.java)?.copy(id = doc.id)
                 }
             }
-        awaitClose { listener.remove() }
     }
 
     suspend fun addGroceryItem(item: GroceryItem) {

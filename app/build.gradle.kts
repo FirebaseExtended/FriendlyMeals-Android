@@ -15,7 +15,7 @@ android {
     defaultConfig {
         applicationId = "com.google.firebase.example.friendlymeals"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 37
         versionCode = 1
         versionName = "1.0"
 
