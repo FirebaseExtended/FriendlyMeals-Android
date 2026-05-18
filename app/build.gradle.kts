@@ -10,7 +10,7 @@ plugins {
 
 android {
     namespace = "com.google.firebase.example.friendlymeals"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.google.firebase.example.friendlymeals"
@@ -58,8 +58,6 @@ dependencies {
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
-    implementation(libs.camera.view)
-    implementation(libs.guava)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.hilt.android)
     ksp(libs.hilt.android.compiler)

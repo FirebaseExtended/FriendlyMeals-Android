@@ -230,7 +230,7 @@ fun RecipeScreenContent(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "Live Cooking Assistant",
+                                    text = stringResource(R.string.live_assistant_title),
                                     color = Color.White,
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold

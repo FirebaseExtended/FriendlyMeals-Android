@@ -36,6 +36,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.asExecutor
 import androidx.core.content.ContextCompat.getMainExecutor
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -155,7 +157,7 @@ fun LiveAssistantScreenContent(
                                         .setBackpressureStrategy(STRATEGY_KEEP_ONLY_LATEST)
                                         .build()
                                         .also { analysis ->
-                                            analysis.setAnalyzer(getMainExecutor(context)) { imageProxy ->
+                                            analysis.setAnalyzer(Dispatchers.IO.asExecutor()) { imageProxy ->
                                                 val bitmap = imageProxy.toBitmap()
                                                 sendVideoFrame(bitmap)
                                                 imageProxy.close()

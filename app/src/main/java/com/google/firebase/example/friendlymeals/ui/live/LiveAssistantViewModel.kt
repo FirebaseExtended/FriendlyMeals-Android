@@ -129,7 +129,7 @@ class LiveAssistantViewModel @Inject constructor(
         if (currentTime - lastFrameTime < 1000) return
         lastFrameTime = currentTime
 
-        launchCatching {
+        launchCatchingIO {
             val outputStream = ByteArrayOutputStream()
             bitmap.compress(Bitmap.CompressFormat.JPEG, 80, outputStream)
             val jpegBytes = outputStream.toByteArray()
