@@ -37,22 +37,8 @@ class LiveAIRemoteDataSource @Inject constructor(
             responseModality = ResponseModality.AUDIO
         }
 
-        // This is temporary, prompt will be moved to Remote Config soon
-        val instructionText = """
-                You are a helpful live cooking assistant. The user is currently preparing the following recipe:
-                Title: ${recipe.title}
-                Prep time: ${recipe.prepTime}, Cook time: ${recipe.cookTime}, Servings: ${recipe.servings}
-                
-                Ingredients:
-                ${recipe.ingredients.joinToString("\n")}
-                
-                Instructions:
-                ${recipe.instructions}
-                
-                The user will stream real-time video of their cooking and ask questions like "Is this the expected texture of the recipe?".
-                Confirm or deny accurately based on the recipe context and the video content. Be concise and helpful.
-                If the user asks you to add an ingredient or item to their grocery list or shopping list, call the addIngredientToGroceryList function.
-            """.trimIndent()
+        val promptTemplate = remoteConfig.getString(LIVE_MODEL_PROMPT_KEY)
+        val instructionText = formatInstructionPrompt(promptTemplate, recipe)
 
         val liveModel = aiModel.liveModel(
             modelName = remoteConfig.getString(LIVE_MODEL_NAME_KEY),
@@ -66,6 +52,16 @@ class LiveAIRemoteDataSource @Inject constructor(
         } catch (_: Exception) {
             null
         }
+    }
+
+    private fun formatInstructionPrompt(template: String, recipe: Recipe): String {
+        return template
+            .replace("{{title}}", recipe.title)
+            .replace("{{prepTime}}", recipe.prepTime)
+            .replace("{{cookTime}}", recipe.cookTime)
+            .replace("{{servings}}", recipe.servings)
+            .replace("{{ingredients}}", recipe.ingredients.joinToString("\n"))
+            .replace("{{instructions}}", recipe.instructions)
     }
 
     companion object {
