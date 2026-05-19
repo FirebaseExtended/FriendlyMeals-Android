@@ -121,7 +121,7 @@ fun FilterScreenContent(
                     IconButton(onClick = { navigateBack() }) {
                         Icon(
                             painter = painterResource(R.drawable.ic_arrow_back),
-                            contentDescription = stringResource(id = R.string.recipe_back_button_content_description)
+                            contentDescription = stringResource(id = R.string.back_button_content_description)
                         )
                     }
                 }

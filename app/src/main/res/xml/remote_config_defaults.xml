@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?><defaults>
     <entry>
         <key>hybrid_cloud_model</key>
-        <value>gemini-3.1-flash-lite-preview</value>
+        <value>gemini-3.1-flash-lite</value>
     </entry>
     <entry>
         <key>hybrid_ingredients_prompt</key>
@@ -16,11 +16,27 @@
         <value>generate-recipe-photo-gemini-template-v1-0-0</value>
     </entry>
     <entry>
-        <key>generate_recipe_photo_imagen</key>
-        <value>generate-recipe-photo-imagen-template-v1-0-0</value>
-    </entry>
-    <entry>
         <key>generate_recipe</key>
         <value>generate-recipe-template-v1-0-0</value>
+    </entry>
+    <entry>
+        <key>live_model_name</key>
+        <value>gemini-2.5-flash-native-audio-preview-12-2025</value>
+    </entry>
+    <entry>
+        <key>live_model_prompt</key>
+        <value>You are a helpful live cooking assistant. The user is currently preparing the following recipe:
+Title: {{title}}
+Prep time: {{prepTime}}, Cook time: {{cookTime}}, Servings: {{servings}}
+
+Ingredients:
+{{ingredients}}
+
+Instructions:
+{{instructions}}
+
+The user will stream real-time video of their cooking and ask questions like "Is this the expected texture of the recipe?".
+Confirm or deny accurately based on the recipe context and the video content. Be concise and helpful.
+If the user asks you to add an ingredient or item to their grocery list or shopping list, call the addIngredientToGroceryList function.</value>
     </entry>
 </defaults>
