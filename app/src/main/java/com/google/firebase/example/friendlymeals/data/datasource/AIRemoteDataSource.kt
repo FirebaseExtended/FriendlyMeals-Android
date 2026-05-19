@@ -1,117 +1,79 @@
 package com.google.firebase.example.friendlymeals.data.datasource
 
 import android.graphics.Bitmap
+import android.util.Log
+import com.google.firebase.Firebase
+import com.google.firebase.ai.DownloadStatus.DownloadCompleted
+import com.google.firebase.ai.DownloadStatus.DownloadFailed
+import com.google.firebase.ai.DownloadStatus.DownloadInProgress
+import com.google.firebase.ai.DownloadStatus.DownloadStarted
 import com.google.firebase.ai.FirebaseAI
-import com.google.firebase.ai.GenerativeModel
-import com.google.firebase.ai.ImagenModel
+import com.google.firebase.ai.InferenceMode
+import com.google.firebase.ai.InferenceSource
+import com.google.firebase.ai.OnDeviceConfig
+import com.google.firebase.ai.OnDeviceModelStatus.Companion.AVAILABLE
+import com.google.firebase.ai.OnDeviceModelStatus.Companion.DOWNLOADABLE
+import com.google.firebase.ai.OnDeviceModelStatus.Companion.DOWNLOADING
+import com.google.firebase.ai.OnDeviceModelStatus.Companion.UNAVAILABLE
 import com.google.firebase.ai.type.ImagePart
-import com.google.firebase.ai.type.ImagenAspectRatio
-import com.google.firebase.ai.type.ImagenImageFormat
-import com.google.firebase.ai.type.ImagenPersonFilterLevel
-import com.google.firebase.ai.type.ImagenSafetyFilterLevel
-import com.google.firebase.ai.type.ImagenSafetySettings
-import com.google.firebase.ai.type.ResponseModality
-import com.google.firebase.ai.type.Schema
+import com.google.firebase.ai.type.PublicPreviewAPI
 import com.google.firebase.ai.type.content
-import com.google.firebase.ai.type.generationConfig
-import com.google.firebase.ai.type.imagenGenerationConfig
 import com.google.firebase.example.friendlymeals.data.schema.MealSchema
 import com.google.firebase.example.friendlymeals.data.schema.RecipeSchema
+import com.google.firebase.perf.performance
+import com.google.firebase.perf.trace
+import com.google.firebase.remoteconfig.FirebaseRemoteConfig
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 
+@OptIn(PublicPreviewAPI::class)
 class AIRemoteDataSource @Inject constructor(
-    private val firebaseAI: FirebaseAI
+    aiModel: FirebaseAI,
+    private val remoteConfig: FirebaseRemoteConfig
 ) {
     private val json = Json { ignoreUnknownKeys = true }
+    private val hybridGenerativeModel = aiModel.generativeModel(
+        modelName = remoteConfig.getString(HYBRID_CLOUD_MODEL_KEY),
+        onDeviceConfig = OnDeviceConfig(mode = InferenceMode.PREFER_IN_CLOUD)
+    )
 
-    private val generativeModel: GenerativeModel get() =
-        firebaseAI.generativeModel(
-            modelName = "gemini-2.5-flash-image",
-            generationConfig = generationConfig {
-                responseModalities = listOf(ResponseModality.TEXT, ResponseModality.IMAGE)
-            }
-        )
-
-    private val imagenModel: ImagenModel get() =
-        firebaseAI.imagenModel(
-            modelName = "imagen-4.0-fast-generate-001",
-            generationConfig = imagenGenerationConfig {
-                numberOfImages = 1
-                aspectRatio = ImagenAspectRatio.SQUARE_1x1
-                imageFormat = ImagenImageFormat.png()
-            },
-            safetySettings = ImagenSafetySettings(
-                safetyFilterLevel = ImagenSafetyFilterLevel.BLOCK_LOW_AND_ABOVE,
-                personFilterLevel = ImagenPersonFilterLevel.BLOCK_ALL
-            )
-        )
-
-    private val mealSchemaModel: GenerativeModel get() =
-        firebaseAI.generativeModel(
-            modelName = "gemini-2.5-flash",
-            generationConfig = generationConfig {
-                responseMimeType = "application/json"
-                responseSchema = Schema.obj(
-                    mapOf(
-                        "protein" to Schema.string(),
-                        "fat" to Schema.string(),
-                        "carbs" to Schema.string(),
-                        "sugar" to Schema.string(),
-                        "ingredients" to Schema.array(Schema.string())
-                    )
-                )
-            }
-        )
-
-    private val recipeSchemaModel: GenerativeModel get() =
-        firebaseAI.generativeModel(
-            modelName = "gemini-2.5-flash",
-            generationConfig = generationConfig {
-                responseMimeType = "application/json"
-                responseSchema = Schema.obj(
-                    mapOf(
-                        "title" to Schema.string(),
-                        "instructions" to Schema.string(),
-                        "ingredients" to Schema.array(Schema.string()),
-                        "prepTime" to Schema.string(),
-                        "cookTime" to Schema.string(),
-                        "servings" to Schema.string(),
-                        "tags" to Schema.array(Schema.string())
-                    )
-                )
-            }
-        )
+    private val templateGenerativeModel = aiModel.templateGenerativeModel()
 
     suspend fun generateIngredients(image: Bitmap): String {
-        val prompt = content {
-            image(image)
-            text("Please analyze this image and list all visible food ingredients. " +
-                    "Format the response as a comma-separated list of ingredients. " +
-                    "Be specific with measurements where possible, " +
-                    "but focus on identifying the ingredients accurately.")
-        }
+        // Adding a Performance Monitoring trace is completely optional. Traces can help you
+        // measure how long it takes to generate ingredients on device and in cloud.
+        Firebase.performance.newTrace("hybrid-inference").trace {
+            val prompt = content {
+                image(image)
+                text(remoteConfig.getString(HYBRID_INGREDIENTS_PROMPT_KEY))
+            }
 
-        val response = generativeModel.generateContent(prompt)
-        return response.text.orEmpty()
+            val response = hybridGenerativeModel.generateContent(prompt)
+
+            // This is an optional function that adds an attribute to the Performance Monitoring
+            // trace. It helps you identify the source of the inference.
+            putAttribute(
+                "inferenceSource",
+                when (response.inferenceSource) {
+                    InferenceSource.ON_DEVICE -> "On device"
+                    else -> "In cloud"
+                }
+            )
+
+            return response.text.orEmpty()
+        }
     }
 
     suspend fun generateRecipe(ingredients: String, notes: String): RecipeSchema? {
-        var prompt = """
-            Create a detailed recipe based on these ingredients: $ingredients.
-            
-            Format requirements:
-            - 'instructions': Provide the cooking steps as a clear list of instructions separated by newlines. Use bold formatting on the step numbers. Use Markdown.
-            - 'ingredients': List all necessary items, including quantities.
-            - 'prepTime', 'cookTime', 'servings': Short strings (e.g., "15 mins").
-            - 'tags': Generate a list of 3-5 relevant category tags (e.g., "Healthy", "Vegan", "Gluten-Free", "Dessert", "Quick").
-        """.trimIndent()
-
-        if (notes.isNotBlank()) {
-            prompt += "\n\nIMPORTANT CUISINE AND DIETARY NOTES: $notes"
-        }
-
-        val response = recipeSchemaModel.generateContent(prompt)
+        val response = templateGenerativeModel.generateContent(
+            templateId = remoteConfig.getString(GENERATE_RECIPE_KEY),
+            inputs = buildMap {
+                put(INGREDIENTS_FIELD, ingredients)
+                if (notes.isNotBlank()) {
+                    put(NOTES_FIELD, notes)
+                }
+            }
+        )
 
         return response.text?.let {
             json.decodeFromString<RecipeSchema>(it)
@@ -119,41 +81,79 @@ class AIRemoteDataSource @Inject constructor(
     }
 
     suspend fun generateRecipePhoto(recipeTitle: String): Bitmap? {
-        val prompt = "A professional food photography shot of this recipe: $recipeTitle. " +
-                "Style: High-end food photography, restaurant-quality plating, soft natural " +
-                "lighting, on a clean background, showing the complete plated dish."
+        val response = templateGenerativeModel.generateContent(
+            templateId = remoteConfig.getString(GENERATE_RECIPE_PHOTO_GEMINI_KEY),
+            inputs = mapOf(RECIPE_TITLE_FIELD to recipeTitle)
+        )
 
-        return generativeModel.generateContent(prompt)
-            .candidates.firstOrNull()?.content?.parts
+        return response.candidates.firstOrNull()?.content?.parts
             ?.filterIsInstance<ImagePart>()?.firstOrNull()?.image
     }
 
-    suspend fun generateRecipePhotoImagen(recipeTitle: String): Bitmap? {
-        val prompt = "A professional food photography shot of this recipe: $recipeTitle. " +
-                "Style: High-end food photography, restaurant-quality plating, soft natural " +
-                "lighting, on a clean background, showing the complete plated dish."
-
-        val imageResponse = imagenModel.generateImages(prompt)
-        return imageResponse.images.firstOrNull()?.asBitmap()
-    }
-
-    suspend fun scanMeal(image: Bitmap): MealSchema? {
-        val prompt = content {
-            image(image)
-            text(
-                """
-                Analyze this image of a meal and estimate the nutritional content.
-                Return the result in JSON format matching the schema:
-                - protein, fat, carbs, sugar (strings with units, e.g., '20g')
-                - ingredients (list of strings)
-                """.trimIndent()
+    suspend fun scanMeal(imageData: String): MealSchema? {
+        val response = templateGenerativeModel.generateContent(
+            templateId = remoteConfig.getString(SCAN_MEAL_KEY),
+            inputs = mapOf(
+                MIME_TYPE_FIELD to MIME_TYPE_VALUE,
+                IMAGE_DATA_FIELD to imageData
             )
-        }
-
-        val response = mealSchemaModel.generateContent(prompt)
+        )
 
         return response.text?.let {
             json.decodeFromString<MealSchema>(it)
         }
+    }
+
+    suspend fun loadOnDeviceModel() {
+        when (hybridGenerativeModel.onDeviceExtension?.checkStatus()) {
+            UNAVAILABLE -> {
+                Log.i(TAG, "On-device model is unavailable")
+            }
+            DOWNLOADABLE -> {
+                hybridGenerativeModel.onDeviceExtension?.download()?.collect { status ->
+                    when (status) {
+                        is DownloadStarted ->
+                            Log.i(TAG, "Starting download - ${status.bytesToDownload}")
+
+                        is DownloadInProgress ->
+                            Log.i(TAG, "Download in progress ${status.totalBytesDownloaded} bytes downloaded")
+
+                        is DownloadCompleted ->
+                            Log.i(TAG, "On-device model download complete")
+
+                        is DownloadFailed ->
+                            Log.e(TAG, "Download failed $status")
+                    }
+                }
+            }
+            DOWNLOADING -> {
+                Log.i(TAG, "On-device model is being downloaded")
+            }
+            AVAILABLE -> {
+                Log.i(TAG, "On-device model is available")
+            }
+        }
+    }
+
+    companion object {
+        //Remote Config Keys
+        private const val GENERATE_RECIPE_KEY = "generate_recipe"
+        private const val GENERATE_RECIPE_PHOTO_GEMINI_KEY = "generate_recipe_photo_gemini"
+        private const val SCAN_MEAL_KEY = "scan_meal"
+        private const val HYBRID_CLOUD_MODEL_KEY = "hybrid_cloud_model"
+        private const val HYBRID_INGREDIENTS_PROMPT_KEY = "hybrid_ingredients_prompt"
+
+        //Template input fields
+        private const val IMAGE_DATA_FIELD = "imageData"
+        private const val MIME_TYPE_FIELD = "mimeType"
+        private const val INGREDIENTS_FIELD = "ingredients"
+        private const val NOTES_FIELD = "notes"
+        private const val RECIPE_TITLE_FIELD = "recipeTitle"
+
+        //Template input values
+        private const val MIME_TYPE_VALUE = "image/jpeg"
+
+        //Class TAG
+        private const val TAG = "AIRemoteDataSource"
     }
 }

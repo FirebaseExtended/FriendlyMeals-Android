@@ -1,14 +1,42 @@
 <?xml version="1.0" encoding="UTF-8"?><defaults>
-  <entry>
-    <key>schema_model_name</key>
-    <value>gemini-2.5-flash</value>
-  </entry>
-  <entry>
-    <key>model_name</key>
-    <value>gemini-2.5-flash-image</value>
-  </entry>
-  <entry>
-    <key>imagen_name</key>
-    <value>imagen-4.0-fast-generate-001</value>
-  </entry>
+    <entry>
+        <key>hybrid_cloud_model</key>
+        <value>gemini-3.1-flash-lite</value>
+    </entry>
+    <entry>
+        <key>hybrid_ingredients_prompt</key>
+        <value>Please analyze this image and list all visible food ingredients. Output ONLY a comma-separated list of ingredients. Do not include any introductory text, headers, or concluding remarks. Provide the raw list only. Be specific with measurements where possible.</value>
+    </entry>
+    <entry>
+        <key>scan_meal</key>
+        <value>scan-meal-template-v1-0-0</value>
+    </entry>
+    <entry>
+        <key>generate_recipe_photo_gemini</key>
+        <value>generate-recipe-photo-gemini-template-v1-0-0</value>
+    </entry>
+    <entry>
+        <key>generate_recipe</key>
+        <value>generate-recipe-template-v1-0-0</value>
+    </entry>
+    <entry>
+        <key>live_model_name</key>
+        <value>gemini-2.5-flash-native-audio-preview-12-2025</value>
+    </entry>
+    <entry>
+        <key>live_model_prompt</key>
+        <value>You are a helpful live cooking assistant. The user is currently preparing the following recipe:
+Title: {{title}}
+Prep time: {{prepTime}}, Cook time: {{cookTime}}, Servings: {{servings}}
+
+Ingredients:
+{{ingredients}}
+
+Instructions:
+{{instructions}}
+
+The user will stream real-time video of their cooking and ask questions like "Is this the expected texture of the recipe?".
+Confirm or deny accurately based on the recipe context and the video content. Be concise and helpful.
+If the user asks you to add an ingredient or item to their grocery list or shopping list, call the addIngredientToGroceryList function.</value>
+    </entry>
 </defaults>

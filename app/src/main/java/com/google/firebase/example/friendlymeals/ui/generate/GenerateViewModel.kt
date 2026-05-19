@@ -27,6 +27,7 @@ class GenerateViewModel @Inject constructor(
 
     init {
         loadCurrentUser()
+        loadOnDeviceModel()
     }
 
     fun loadCurrentUser() {
@@ -35,6 +36,12 @@ class GenerateViewModel @Inject constructor(
                 val user = authRepository.createAnonymousAccount()
                 databaseRepository.addUser(user)
             }
+        }
+    }
+
+    fun loadOnDeviceModel() {
+        launchCatching {
+            aiRepository.loadOnDeviceModel()
         }
     }
 
@@ -99,8 +106,6 @@ class GenerateViewModel @Inject constructor(
             if (recipeImage != null) {
                 recipeImageUri = storageRepository.addImage(recipeImage)
             }
-
-            databaseRepository.addTags(generatedRecipe.tags)
 
             val storedRecipeId = databaseRepository.addRecipe(
                 recipe = generatedRecipe.toRecipe(

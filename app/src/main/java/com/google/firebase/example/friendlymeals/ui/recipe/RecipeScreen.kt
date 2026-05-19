@@ -1,6 +1,15 @@
 package com.google.firebase.example.friendlymeals.ui.recipe
 
+import android.Manifest.permission.CAMERA
+import android.Manifest.permission.RECORD_AUDIO
+import android.content.pm.PackageManager
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -54,15 +63,26 @@ data class RecipeRoute(val recipeId: String)
 @Composable
 fun RecipeScreen(
     viewModel: RecipeViewModel = hiltViewModel(),
-    navigateBack: () -> Unit
+    navigateBack: () -> Unit,
+    navigateToLiveAssistant: (String) -> Unit
 ) {
     val recipeViewState = viewModel.recipeViewState.collectAsStateWithLifecycle()
+    val groceryListToast = stringResource(R.string.added_to_grocery_list_toast)
+    val context = LocalContext.current
 
     RecipeScreenContent(
         navigateBack = navigateBack,
         toggleFavorite = viewModel::toggleFavorite,
         leaveReview = viewModel::leaveReview,
-        recipeViewState = recipeViewState.value
+        recipeViewState = recipeViewState.value,
+        onLiveAssistantClick = {
+            navigateToLiveAssistant(recipeViewState.value.recipeId)
+        },
+        onAddIngredientsToGrocery = {
+            viewModel.addIngredientsToGroceryList(recipeViewState.value.recipe.ingredients) {
+                Toast.makeText(context, groceryListToast, Toast.LENGTH_SHORT).show()
+            }
+        }
     )
 }
 
@@ -71,8 +91,25 @@ fun RecipeScreenContent(
     navigateBack: () -> Unit = {},
     toggleFavorite: () -> Unit = {},
     leaveReview: (Int) -> Unit = {},
-    recipeViewState: RecipeViewState
+    recipeViewState: RecipeViewState,
+    onLiveAssistantClick: () -> Unit = {},
+    onAddIngredientsToGrocery: () -> Unit = {}
 ) {
+    val context = LocalContext.current
+    val multiplePermissionsLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val cameraGranted = permissions[CAMERA] == true
+        val audioGranted = permissions[RECORD_AUDIO] == true
+        if (cameraGranted && audioGranted) {
+            onLiveAssistantClick()
+        } else {
+            Toast.makeText(context, "Camera and Microphone permissions are required to use the Live Assistant.", Toast.LENGTH_LONG).show()
+        }
+    }
+    val cameraPermissionGranted = ContextCompat.checkSelfPermission(context, CAMERA) == PackageManager.PERMISSION_GRANTED
+    val audioPermissionGranted = ContextCompat.checkSelfPermission(context, RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+
     val favoriteIcon = if (recipeViewState.favorite) {
         painterResource(R.drawable.ic_favorite_filled)
     } else {
@@ -130,7 +167,7 @@ fun RecipeScreenContent(
                             ) {
                                 Icon(
                                     painter = painterResource(R.drawable.ic_arrow_back),
-                                    contentDescription = stringResource(id = R.string.recipe_back_button_content_description),
+                                    contentDescription = stringResource(id = R.string.back_button_content_description),
                                     tint = TextColor
                                 )
                             }
@@ -164,6 +201,42 @@ fun RecipeScreenContent(
                             fontWeight = FontWeight.Bold,
                             lineHeight = 34.sp
                         )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Button(
+                            onClick = {
+                                if (cameraPermissionGranted && audioPermissionGranted) {
+                                    onLiveAssistantClick()
+                                } else {
+                                    multiplePermissionsLauncher.launch(
+                                        arrayOf(CAMERA, RECORD_AUDIO)
+                                    )
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Teal),
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.fillMaxWidth().height(52.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_cook),
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = stringResource(R.string.live_assistant_title),
+                                    color = Color.White,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
 
                         Spacer(modifier = Modifier.height(24.dp))
 
@@ -216,6 +289,38 @@ fun RecipeScreenContent(
 
                                 recipeViewState.recipe.ingredients.forEach {
                                     IngredientRow(it)
+                                }
+
+                                Spacer(modifier = Modifier.height(20.dp))
+
+                                Button(
+                                    onClick = { onAddIngredientsToGrocery() },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = LightTeal,
+                                        contentColor = Teal
+                                    ),
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier.fillMaxWidth().height(48.dp)
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(R.drawable.ic_check),
+                                            contentDescription = null,
+                                            tint = Teal,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+
+                                        Spacer(modifier = Modifier.width(8.dp))
+
+                                        Text(
+                                            text = stringResource(R.string.add_to_grocery_list_button),
+                                            fontSize = 15.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
                                 }
                             }
                         }

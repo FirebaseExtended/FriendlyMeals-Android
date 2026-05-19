@@ -3,6 +3,7 @@ package com.google.firebase.example.friendlymeals.ui.recipe
 import com.google.firebase.example.friendlymeals.data.model.Recipe
 
 data class RecipeViewState(
+    val recipeId: String = "",
     val recipe: Recipe = Recipe(),
     val favorite: Boolean = false,
     val rating: Int = 0

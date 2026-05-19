@@ -47,7 +47,6 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.firebase.example.friendlymeals.R
-import com.google.firebase.example.friendlymeals.data.model.Tag
 import com.google.firebase.example.friendlymeals.ui.recipeList.RecipeListViewModel
 import com.google.firebase.example.friendlymeals.ui.shared.RatingButton
 import com.google.firebase.example.friendlymeals.ui.theme.BorderColor
@@ -73,6 +72,7 @@ fun FilterScreen(
     FilterScreenContent(
         navigateBack = navigateBack,
         updateRecipeTitle = viewModel::updateRecipeTitle,
+        updateSearchQuery = viewModel::updateSearchQuery,
         updateFilterByMine = viewModel::updateFilterByMine,
         updateRating = viewModel::updateRating,
         removeTag = viewModel::removeTag,
@@ -96,6 +96,7 @@ fun FilterScreen(
 fun FilterScreenContent(
     navigateBack: () -> Unit = {},
     updateRecipeTitle: (String) -> Unit = {},
+    updateSearchQuery: (String) -> Unit = {},
     updateFilterByMine: () -> Unit = {},
     updateRating: (Int) -> Unit = {},
     removeTag: (String) -> Unit = {},
@@ -104,7 +105,7 @@ fun FilterScreenContent(
     resetFilters: () -> Unit = {},
     applyFilters: () -> Unit = {},
     filterOptions: FilterOptions,
-    tags: List<Tag>
+    tags: List<String>
 ) {
     Scaffold(
         topBar = {
@@ -120,7 +121,7 @@ fun FilterScreenContent(
                     IconButton(onClick = { navigateBack() }) {
                         Icon(
                             painter = painterResource(R.drawable.ic_arrow_back),
-                            contentDescription = stringResource(id = R.string.recipe_back_button_content_description)
+                            contentDescription = stringResource(id = R.string.back_button_content_description)
                         )
                     }
                 }
@@ -135,6 +136,26 @@ fun FilterScreenContent(
                 .verticalScroll(rememberScrollState())
         ) {
             Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = stringResource(id = R.string.filter_search_label),
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            OutlinedTextField(
+                value = filterOptions.searchQuery,
+                onValueChange = { updateSearchQuery(it) },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text(stringResource(id = R.string.filter_search_hint), color = Color.Gray) },
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = BorderColor,
+                    unfocusedBorderColor = BorderColor
+                )
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
 
             Text(
                 text = stringResource(id = R.string.filter_recipe_title_label),
@@ -213,17 +234,17 @@ fun FilterScreenContent(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    tags.forEach { tag ->
-                        val isSelected = filterOptions.selectedTags.contains(tag.name)
+                    tags.forEach { tagName ->
+                        val isSelected = filterOptions.selectedTags.contains(tagName)
 
                         FilterChip(
-                            text = tag.name,
+                            text = tagName,
                             isSelected = isSelected,
                             onClick = {
                                 if (isSelected) {
-                                    removeTag(tag.name)
+                                    removeTag(tagName)
                                 } else {
-                                    addTag(tag.name)
+                                    addTag(tagName)
                                 }
                             }
                         )
@@ -241,31 +262,38 @@ fun FilterScreenContent(
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 RadioButton(
+                    selected = filterOptions.sortBy == SortByFilter.DEFAULT,
+                    onClick = { updateSortBy(SortByFilter.DEFAULT) },
+                    colors = RadioButtonDefaults.colors(selectedColor = Teal)
+                )
+                Text(stringResource(id = SortByFilter.DEFAULT.title))
+
+                Spacer(modifier = Modifier.width(24.dp))
+
+                RadioButton(
                     selected = filterOptions.sortBy == SortByFilter.RATING,
                     onClick = { updateSortBy(SortByFilter.RATING) },
                     colors = RadioButtonDefaults.colors(selectedColor = Teal)
                 )
                 Text(stringResource(id = SortByFilter.RATING.title))
-                
-                Spacer(modifier = Modifier.width(24.dp))
-                
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 RadioButton(
                     selected = filterOptions.sortBy == SortByFilter.ALPHABETICAL,
                     onClick = { updateSortBy(SortByFilter.ALPHABETICAL) },
                     colors = RadioButtonDefaults.colors(selectedColor = Teal)
                 )
                 Text(stringResource(id = SortByFilter.ALPHABETICAL.title))
-            }
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
+                Spacer(modifier = Modifier.width(24.dp))
+
                 RadioButton(
                     selected = filterOptions.sortBy == SortByFilter.POPULARITY,
                     onClick = { updateSortBy(SortByFilter.POPULARITY) },
                     colors = RadioButtonDefaults.colors(selectedColor = Teal)
                 )
                 Text(stringResource(id = SortByFilter.POPULARITY.title))
-
-                Spacer(modifier = Modifier.width(24.dp))
             }
 
             Spacer(modifier = Modifier.weight(1f))

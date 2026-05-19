@@ -4,10 +4,11 @@ import com.google.firebase.example.friendlymeals.data.datasource.DatabaseRemoteD
 import com.google.firebase.example.friendlymeals.data.model.Recipe
 import com.google.firebase.example.friendlymeals.data.model.Review
 import com.google.firebase.example.friendlymeals.data.model.Like
-import com.google.firebase.example.friendlymeals.data.model.Tag
 import com.google.firebase.example.friendlymeals.data.model.User
 import com.google.firebase.example.friendlymeals.ui.recipeList.RecipeListItem
 import com.google.firebase.example.friendlymeals.ui.recipeList.filter.FilterOptions
+import com.google.firebase.example.friendlymeals.data.model.GroceryItem
+import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
 class DatabaseRepository @Inject constructor(
@@ -29,11 +30,7 @@ class DatabaseRepository @Inject constructor(
         return databaseRemoteDataSource.getAllRecipes()
     }
 
-    suspend fun addTags(tagNames: List<String>) {
-        return databaseRemoteDataSource.addTags(tagNames)
-    }
-
-    suspend fun getPopularTags(): List<Tag> {
+    suspend fun getPopularTags(): List<String> {
         return databaseRemoteDataSource.getPopularTags()
     }
 
@@ -62,5 +59,25 @@ class DatabaseRepository @Inject constructor(
         userId: String
     ): List<RecipeListItem> {
         return databaseRemoteDataSource.getFilteredRecipes(filterOptions, userId)
+    }
+
+    fun getGroceriesFlow(userId: String): Flow<List<GroceryItem>> {
+        return databaseRemoteDataSource.getGroceriesFlow(userId)
+    }
+
+    suspend fun addGroceryItem(item: GroceryItem) {
+        databaseRemoteDataSource.addGroceryItem(item)
+    }
+
+    suspend fun updateGroceryItemChecked(itemId: String, checked: Boolean) {
+        databaseRemoteDataSource.updateGroceryItemChecked(itemId, checked)
+    }
+
+    suspend fun deleteGroceryItem(itemId: String) {
+        databaseRemoteDataSource.deleteGroceryItem(itemId)
+    }
+
+    suspend fun addIngredientsToGroceries(userId: String, ingredients: List<String>) {
+        databaseRemoteDataSource.addIngredientsToGroceries(userId, ingredients)
     }
 }

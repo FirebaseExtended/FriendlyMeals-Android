@@ -35,6 +35,7 @@ class RecipeViewModel @Inject constructor(
     fun loadRecipe() {
         launchCatching {
             _recipeViewState.value = RecipeViewState(
+                recipeId = recipeId,
                 recipe = databaseRepository.getRecipe(recipeId),
                 favorite = loadFavorite(),
                 rating = loadRating()
@@ -82,6 +83,15 @@ class RecipeViewModel @Inject constructor(
             _recipeViewState.value = _recipeViewState.value.copy(
                 rating = loadRating()
             )
+        }
+    }
+
+    fun addIngredientsToGroceryList(ingredients: List<String>, onSuccess: () -> Unit) {
+        if (userId.isEmpty() || ingredients.isEmpty()) return
+
+        launchCatching {
+            databaseRepository.addIngredientsToGroceries(userId, ingredients)
+            onSuccess()
         }
     }
 }

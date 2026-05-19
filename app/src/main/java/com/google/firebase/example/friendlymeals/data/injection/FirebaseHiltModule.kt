@@ -21,7 +21,8 @@ object FirebaseHiltModule {
 
     @Provides fun auth(): FirebaseAuth = Firebase.auth
 
-    @Provides fun firebaseAI(): FirebaseAI {
+    @Provides
+    fun firebaseAI(): FirebaseAI {
         return Firebase.ai(backend = GenerativeBackend.googleAI())
     }
 
