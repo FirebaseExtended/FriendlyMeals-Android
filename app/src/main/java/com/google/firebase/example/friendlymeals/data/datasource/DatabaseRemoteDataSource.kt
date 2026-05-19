@@ -37,55 +37,19 @@ class DatabaseRemoteDataSource @Inject constructor(
     }
 
     suspend fun addRecipe(recipe: Recipe): String {
-        val recipeRef = firestore.collection(RECIPES_COLLECTION).add(recipe).await()
-        return recipeRef.id
+        return ""
     }
 
     suspend fun getRecipe(recipeId: String): Recipe {
-        val recipePath = "${RECIPES_COLLECTION}/${recipeId}"
-
-        return firestore
-            .pipeline()
-            .documents(recipePath)
-            .define(
-                documentId(field(NAME_FIELD_PATH))
-                    .alias(CURRENT_RECIPE_ID_VAR))
-            .addFields(
-                PipelineSource.subcollection(REVIEWS_SUBCOLLECTION)
-                    .aggregate(average(RATING_FIELD).alias(AVG_RATING_ALIAS))
-                    .toScalarExpression().alias(AVERAGE_RATING_FIELD)
-            )
-            .execute().await().results.toRecipe()
+        return Recipe()
     }
 
     suspend fun getAllRecipes(): List<RecipeListItem> {
-        return firestore
-            .pipeline()
-            .collection(RECIPES_COLLECTION)
-            .define(
-                documentId(field(NAME_FIELD_PATH))
-                    .alias(CURRENT_RECIPE_ID_VAR))
-            .addFields(
-                PipelineSource.subcollection(REVIEWS_SUBCOLLECTION)
-                    .aggregate(average(RATING_FIELD).alias(AVG_RATING_ALIAS))
-                    .toScalarExpression().alias(AVERAGE_RATING_FIELD)
-            )
-            .execute().await().results.toRecipeListItem()
+        return listOf()
     }
 
     suspend fun getPopularTags(): List<String> {
-        val results = firestore.pipeline()
-            .collection(RECIPES_COLLECTION)
-            .unnest(field(TAGS_FIELD).alias(TAG_NAME_ALIAS))
-            .aggregate(
-                AggregateStage.withAccumulators(countAll().alias(TAG_COUNT_ALIAS))
-                    .withGroups(TAG_NAME_ALIAS)
-            )
-            .sort(field(TAG_COUNT_ALIAS).descending())
-            .limit(10)
-            .execute().await().results
-
-        return results.mapNotNull { it.getData()[TAG_NAME_ALIAS] as? String }
+        return listOf()
     }
 
     /*
@@ -159,64 +123,7 @@ class DatabaseRemoteDataSource @Inject constructor(
         filterOptions: FilterOptions,
         userId: String
     ): List<RecipeListItem> {
-        var pipeline = firestore.pipeline().collection(RECIPES_COLLECTION)
-
-        if (filterOptions.searchQuery.isNotBlank()) {
-            val searchStage = SearchStage.withQuery(filterOptions.searchQuery)
-                .withAddFields(Expression.score().alias(SCORE_ALIAS))
-
-            pipeline = pipeline.search(searchStage).sort(field(SCORE_ALIAS).descending())
-        } else if (filterOptions.recipeTitle.isNotBlank()) {
-            pipeline = pipeline
-                .where(
-                    field(TITLE_FIELD).toLower()
-                        .stringContains(filterOptions.recipeTitle.lowercase())
-                )
-        }
-
-        if (filterOptions.filterByMine) {
-            pipeline = pipeline.where(field(AUTHOR_ID_FIELD).equal(userId))
-        }
-
-        pipeline = pipeline
-            .define(
-                documentId(field(NAME_FIELD_PATH)).alias(CURRENT_RECIPE_ID_VAR)
-            ).addFields(
-                PipelineSource.subcollection(REVIEWS_SUBCOLLECTION)
-                    .aggregate(average(RATING_FIELD).alias(AVG_RATING_ALIAS))
-                    .toScalarExpression().alias(AVERAGE_RATING_FIELD),
-                firestore.pipeline()
-                    .collectionGroup(LIKES_COLLECTION)
-                    .where(field(RECIPE_ID_FIELD)
-                        .equal(variable(CURRENT_RECIPE_ID_VAR)))
-                    .aggregate(countAll().alias(LIKES_COUNT_ALIAS))
-                    .toScalarExpression().alias(LIKES_FIELD)
-            )
-
-        if (filterOptions.rating > 0) {
-            pipeline = pipeline
-                .where(field(AVERAGE_RATING_FIELD).greaterThanOrEqual(filterOptions.rating))
-        }
-
-        if (filterOptions.selectedTags.isNotEmpty()) {
-            pipeline = pipeline
-                .where(field(TAGS_FIELD).arrayContainsAny(filterOptions.selectedTags))
-        }
-
-        when (filterOptions.sortBy) {
-            SortByFilter.DEFAULT -> {}
-            SortByFilter.RATING -> {
-                pipeline = pipeline.sort(field(AVERAGE_RATING_FIELD).descending())
-            }
-            SortByFilter.ALPHABETICAL -> {
-                pipeline = pipeline.sort(field(TITLE_FIELD).ascending())
-            }
-            SortByFilter.POPULARITY -> {
-                pipeline = pipeline.sort(field(LIKES_FIELD).descending())
-            }
-        }
-
-        return pipeline.execute().await().results.toRecipeListItem()
+        return listOf()
     }
 
     private fun List<PipelineResult>.toRecipe(): Recipe {
