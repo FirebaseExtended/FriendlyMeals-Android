@@ -50,7 +50,7 @@ class LiveAIRemoteDataSource @Inject constructor(
         val userId = authRepository.currentUser?.uid.orEmpty()
 
         if (ingredients.isNullOrBlank() || userId.isEmpty()) {
-            throw FirebaseAutoFunctionException(LIVE_MODEL_ERROR)
+            throw FirebaseAutoFunctionException(INGREDIENT_FIELD_ERROR)
         }
 
         val ingredientsList = ingredients.split(",").map { it.trim() }
@@ -101,10 +101,9 @@ class LiveAIRemoteDataSource @Inject constructor(
     companion object {
         //Live Model Config
         private const val LIVE_MODEL_VOICE = "CHARON"
-        private const val LIVE_MODEL_ERROR = "Unable to add ingredients to the list"
 
         //Tools config
-        private const val ADD_INGREDIENTS_TOOL_NAME = "addIngredientToGroceryList"
+        private const val ADD_INGREDIENTS_TOOL_NAME = "addToGroceryList"
         private const val ADD_INGREDIENTS_TOOL_DESCRIPTION = "Adds a list of ingredients to the " +
                 "user's grocery list in the database."
         private const val ADD_INGREDIENTS_TOOL_RESULT = "result"
@@ -112,6 +111,7 @@ class LiveAIRemoteDataSource @Inject constructor(
                 "ingredients to grocery list"
         private const val INGREDIENT_FIELD_NAME = "ingredient"
         private const val INGREDIENT_FIELD_DESCRIPTION = "The name of the ingredient to add."
+        private const val INGREDIENT_FIELD_ERROR = "Unable to add ingredients to the list"
 
         //Remote Config Keys
         private const val LIVE_MODEL_NAME_KEY = "live_model_name"
