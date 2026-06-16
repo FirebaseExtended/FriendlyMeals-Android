@@ -20,15 +20,23 @@ import com.google.firebase.ai.type.PublicPreviewAPI
 import com.google.firebase.ai.type.content
 import com.google.firebase.example.friendlymeals.data.schema.MealSchema
 import com.google.firebase.example.friendlymeals.data.schema.RecipeSchema
+import com.google.firebase.example.friendlymeals.data.schema.LocalStore
+import com.google.firebase.example.friendlymeals.data.schema.StoreLocalizerResult
 import com.google.firebase.perf.performance
 import com.google.firebase.perf.trace
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
+import com.google.firebase.ai.type.LatLng
+import com.google.firebase.ai.type.Schema
+import com.google.firebase.ai.type.Tool
+import com.google.firebase.ai.type.ToolConfig
+import com.google.firebase.ai.type.generationConfig
+import com.google.firebase.ai.type.retrievalConfig
 
 @OptIn(PublicPreviewAPI::class)
 class AIRemoteDataSource @Inject constructor(
-    aiModel: FirebaseAI,
+    private val aiModel: FirebaseAI,
     private val remoteConfig: FirebaseRemoteConfig
 ) {
     private val json = Json { ignoreUnknownKeys = true }
@@ -38,6 +46,70 @@ class AIRemoteDataSource @Inject constructor(
     )
 
     private val templateGenerativeModel = aiModel.templateGenerativeModel()
+
+    suspend fun localizeIngredients(
+        ingredients: List<String>,
+        latitude: Double,
+        longitude: Double,
+        currentTime: String,
+        dayOfWeek: String
+    ): List<LocalStore> {
+        val retrievalConfig = retrievalConfig {
+            latLng = LatLng(latitude = latitude, longitude = longitude)
+            languageCode = "en_US"
+        }
+        val toolConfig = ToolConfig(
+            retrievalConfig = retrievalConfig
+        )
+        val model = aiModel.generativeModel(
+            modelName = "gemini-2.5-flash",
+            tools = listOf(Tool.googleMaps()),
+            toolConfig = toolConfig
+        )
+
+        val prompt = """
+            What are the nearest grocery stores or markets near me that stock these ingredients: ${ingredients.joinToString(", ")}?
+            For each place, tell me their business hours, if it's open right now on $dayOfWeek at $currentTime, and if it's closing in less than 30 minutes.
+            Tell me what the parking situation is like at each place: is there a dedicated lot or should I look for street parking?
+            
+            Format your response strictly as a JSON object with a "stores" array containing store objects.
+            Each store object must have these exact keys:
+            - "name": string
+            - "address": string
+            - "distance": string
+            - "openNow": boolean
+            - "closingSoon": boolean
+            - "hasParking": boolean
+            - "parkingDetails": string
+            
+            Do not include markdown code block formatting (like ```json). Output only the raw JSON string.
+        """.trimIndent()
+
+        return try {
+            val response = model.generateContent(prompt)
+            val rawText = response.text ?: return emptyList()
+            
+            val cleanJson = rawText
+                .replace("```json", "")
+                .replace("```", "")
+                .trim()
+
+            val result = json.decodeFromString<StoreLocalizerResult>(cleanJson)
+            val groundingChunks = response.candidates.firstOrNull()?.groundingMetadata?.groundingChunks
+
+            result.stores.map { store ->
+                val matchingChunk = groundingChunks?.find { chunk ->
+                    val chunkTitle = chunk.maps?.title.orEmpty().lowercase()
+                    val storeName = store.name.lowercase()
+                    chunkTitle.contains(storeName) || storeName.contains(chunkTitle)
+                }
+                store.copy(mapUrl = matchingChunk?.maps?.uri.orEmpty())
+            }
+        } catch (e: Exception) {
+            Log.e("AIRemoteDataSource", "Error localizing ingredients", e)
+            emptyList()
+        }
+    }
 
     suspend fun generateIngredients(image: Bitmap): String {
         // Adding a Performance Monitoring trace is completely optional. Traces can help you
