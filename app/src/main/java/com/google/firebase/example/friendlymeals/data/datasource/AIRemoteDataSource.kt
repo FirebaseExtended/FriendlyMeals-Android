@@ -78,17 +78,7 @@ class AIRemoteDataSource @Inject constructor(
                 .replace("```", "")
                 .trim()
 
-            val result = json.decodeFromString<StoreLocalizerResult>(cleanJson)
-            val groundingChunks = response.candidates.firstOrNull()?.groundingMetadata?.groundingChunks
-
-            result.stores.map { store ->
-                val matchingChunk = groundingChunks?.find { chunk ->
-                    val chunkTitle = chunk.maps?.title.orEmpty().lowercase()
-                    val storeName = store.name.lowercase()
-                    chunkTitle.contains(storeName) || storeName.contains(chunkTitle)
-                }
-                store.copy(mapUrl = matchingChunk?.maps?.uri.orEmpty())
-            }
+            json.decodeFromString<StoreLocalizerResult>(cleanJson).stores
         } catch (e: Exception) {
             Log.e(TAG, "Error localizing ingredients", e)
             emptyList()
