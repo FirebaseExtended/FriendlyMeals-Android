@@ -20,7 +20,6 @@ import com.google.firebase.ai.type.PublicPreviewAPI
 import com.google.firebase.ai.type.content
 import com.google.firebase.example.friendlymeals.data.schema.MealSchema
 import com.google.firebase.example.friendlymeals.data.schema.RecipeSchema
-import com.google.firebase.example.friendlymeals.data.schema.LocalStore
 import com.google.firebase.example.friendlymeals.data.schema.StoreLocalizerResult
 import com.google.firebase.perf.performance
 import com.google.firebase.perf.trace
@@ -28,11 +27,10 @@ import com.google.firebase.remoteconfig.FirebaseRemoteConfig
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import com.google.firebase.ai.type.LatLng
-import com.google.firebase.ai.type.Schema
 import com.google.firebase.ai.type.Tool
 import com.google.firebase.ai.type.ToolConfig
-import com.google.firebase.ai.type.generationConfig
 import com.google.firebase.ai.type.retrievalConfig
+import com.google.firebase.example.friendlymeals.data.schema.StoreSchema
 
 @OptIn(PublicPreviewAPI::class)
 class AIRemoteDataSource @Inject constructor(
@@ -40,6 +38,7 @@ class AIRemoteDataSource @Inject constructor(
     private val remoteConfig: FirebaseRemoteConfig
 ) {
     private val json = Json { ignoreUnknownKeys = true }
+
     private val hybridGenerativeModel = aiModel.generativeModel(
         modelName = remoteConfig.getString(HYBRID_CLOUD_MODEL_KEY),
         onDeviceConfig = OnDeviceConfig(mode = InferenceMode.PREFER_IN_CLOUD)
@@ -53,40 +52,25 @@ class AIRemoteDataSource @Inject constructor(
         longitude: Double,
         currentTime: String,
         dayOfWeek: String
-    ): List<LocalStore> {
-        val retrievalConfig = retrievalConfig {
-            latLng = LatLng(latitude = latitude, longitude = longitude)
-            languageCode = "en_US"
-        }
-        val toolConfig = ToolConfig(
-            retrievalConfig = retrievalConfig
-        )
-        val model = aiModel.generativeModel(
-            modelName = "gemini-2.5-flash",
+    ): List<StoreSchema> {
+        val groundingModel = aiModel.generativeModel(
+            modelName = remoteConfig.getString(GROUNDING_MODEL_KEY),
             tools = listOf(Tool.googleMaps()),
-            toolConfig = toolConfig
+            toolConfig = ToolConfig(
+                retrievalConfig = retrievalConfig {
+                    latLng = LatLng(latitude = latitude, longitude = longitude)
+                    languageCode = LANGUAGE
+                }
+            )
         )
 
-        val prompt = """
-            What are the nearest grocery stores or markets near me that stock these ingredients: ${ingredients.joinToString(", ")}?
-            For each place, tell me their business hours, if it's open right now on $dayOfWeek at $currentTime, and if it's closing in less than 30 minutes.
-            Tell me what the parking situation is like at each place: is there a dedicated lot or should I look for street parking?
-            
-            Format your response strictly as a JSON object with a "stores" array containing store objects.
-            Each store object must have these exact keys:
-            - "name": string
-            - "address": string
-            - "distance": string
-            - "openNow": boolean
-            - "closingSoon": boolean
-            - "hasParking": boolean
-            - "parkingDetails": string
-            
-            Do not include markdown code block formatting (like ```json). Output only the raw JSON string.
-        """.trimIndent()
+        val groundingPrompt = remoteConfig.getString(GROUNDING_PROMPT_KEY)
+            .replace("{{ingredients}}", ingredients.joinToString(", "))
+            .replace("{{dayOfWeek}}", dayOfWeek)
+            .replace("{{currentTime}}", currentTime)
 
         return try {
-            val response = model.generateContent(prompt)
+            val response = groundingModel.generateContent(groundingPrompt)
             val rawText = response.text ?: return emptyList()
             
             val cleanJson = rawText
@@ -106,7 +90,7 @@ class AIRemoteDataSource @Inject constructor(
                 store.copy(mapUrl = matchingChunk?.maps?.uri.orEmpty())
             }
         } catch (e: Exception) {
-            Log.e("AIRemoteDataSource", "Error localizing ingredients", e)
+            Log.e(TAG, "Error localizing ingredients", e)
             emptyList()
         }
     }
@@ -214,6 +198,8 @@ class AIRemoteDataSource @Inject constructor(
         private const val SCAN_MEAL_KEY = "scan_meal"
         private const val HYBRID_CLOUD_MODEL_KEY = "hybrid_cloud_model"
         private const val HYBRID_INGREDIENTS_PROMPT_KEY = "hybrid_ingredients_prompt"
+        private const val GROUNDING_MODEL_KEY = "grounding_model"
+        private const val GROUNDING_PROMPT_KEY = "grounding_prompt"
 
         //Template input fields
         private const val IMAGE_DATA_FIELD = "imageData"
@@ -224,6 +210,9 @@ class AIRemoteDataSource @Inject constructor(
 
         //Template input values
         private const val MIME_TYPE_VALUE = "image/jpeg"
+
+        //Grounding with Maps config
+        private const val LANGUAGE = "en_US"
 
         //Class TAG
         private const val TAG = "AIRemoteDataSource"

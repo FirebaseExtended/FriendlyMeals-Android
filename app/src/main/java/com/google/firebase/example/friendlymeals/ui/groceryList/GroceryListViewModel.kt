@@ -5,7 +5,6 @@ import com.google.firebase.example.friendlymeals.data.model.GroceryItem
 import com.google.firebase.example.friendlymeals.data.repository.AuthRepository
 import com.google.firebase.example.friendlymeals.data.repository.DatabaseRepository
 import com.google.firebase.example.friendlymeals.data.repository.AIRepository
-import com.google.firebase.example.friendlymeals.data.schema.LocalStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,13 +15,6 @@ import java.time.format.TextStyle
 import java.util.Locale
 import javax.inject.Inject
 
-sealed interface LocalizerUiState {
-    object Idle : LocalizerUiState
-    object Loading : LocalizerUiState
-    data class Success(val stores: List<LocalStore>) : LocalizerUiState
-    data class Error(val message: String) : LocalizerUiState
-}
-
 @HiltViewModel
 class GroceryListViewModel @Inject constructor(
     private val authRepository: AuthRepository,
@@ -32,8 +24,8 @@ class GroceryListViewModel @Inject constructor(
     private val _groceries = MutableStateFlow<List<GroceryItem>>(emptyList())
     val groceries: StateFlow<List<GroceryItem>> = _groceries.asStateFlow()
 
-    private val _localizerState = MutableStateFlow<LocalizerUiState>(LocalizerUiState.Idle)
-    val localizerState: StateFlow<LocalizerUiState> = _localizerState.asStateFlow()
+    private val _uiState = MutableStateFlow<StoreLocalizerUiState>(StoreLocalizerUiState.Idle)
+    val uiState: StateFlow<StoreLocalizerUiState> = _uiState.asStateFlow()
 
     val userId: String get() = authRepository.currentUser?.uid.orEmpty()
 
@@ -79,7 +71,7 @@ class GroceryListViewModel @Inject constructor(
     }
 
     fun resetLocalizer() {
-        _localizerState.value = LocalizerUiState.Idle
+        _uiState.value = StoreLocalizerUiState.Idle
     }
 
     fun localizeGroceryList(latitude: Double, longitude: Double) {
@@ -88,11 +80,11 @@ class GroceryListViewModel @Inject constructor(
             .map { it.name }
 
         if (uncheckedIngredients.isEmpty()) {
-            _localizerState.value = LocalizerUiState.Error(EMPTY_ITEMS_ERROR)
+            _uiState.value = StoreLocalizerUiState.Error(EMPTY_ITEMS_ERROR)
             return
         }
 
-        _localizerState.value = LocalizerUiState.Loading
+        _uiState.value = StoreLocalizerUiState.Loading
 
         launchCatching {
             val now = LocalDateTime.now()
@@ -108,9 +100,9 @@ class GroceryListViewModel @Inject constructor(
             )
 
             if (stores.isEmpty()) {
-                _localizerState.value = LocalizerUiState.Error(EMPTY_STORE_ERROR)
+                _uiState.value = StoreLocalizerUiState.Error(EMPTY_STORE_ERROR)
             } else {
-                _localizerState.value = LocalizerUiState.Success(stores)
+                _uiState.value = StoreLocalizerUiState.Success(stores)
             }
         }
     }

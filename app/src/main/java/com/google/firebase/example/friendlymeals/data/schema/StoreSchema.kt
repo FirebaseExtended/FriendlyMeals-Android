@@ -3,7 +3,7 @@ package com.google.firebase.example.friendlymeals.data.schema
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class LocalStore(
+data class StoreSchema(
     val name: String = "",
     val address: String = "",
     val distance: String = "",
@@ -16,5 +16,5 @@ data class LocalStore(
 
 @Serializable
 data class StoreLocalizerResult(
-    val stores: List<LocalStore> = emptyList()
+    val stores: List<StoreSchema> = emptyList()
 )

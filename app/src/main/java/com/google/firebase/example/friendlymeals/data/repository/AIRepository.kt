@@ -4,7 +4,7 @@ import android.graphics.Bitmap
 import com.google.firebase.example.friendlymeals.data.datasource.AIRemoteDataSource
 import com.google.firebase.example.friendlymeals.data.schema.MealSchema
 import com.google.firebase.example.friendlymeals.data.schema.RecipeSchema
-import com.google.firebase.example.friendlymeals.data.schema.LocalStore
+import com.google.firebase.example.friendlymeals.data.schema.StoreSchema
 import javax.inject.Inject
 
 class AIRepository @Inject constructor(
@@ -20,7 +20,7 @@ class AIRepository @Inject constructor(
         longitude: Double,
         currentTime: String,
         dayOfWeek: String
-    ): List<LocalStore> {
+    ): List<StoreSchema> {
         return aiRemoteDataSource.localizeIngredients(
             ingredients,
             latitude,

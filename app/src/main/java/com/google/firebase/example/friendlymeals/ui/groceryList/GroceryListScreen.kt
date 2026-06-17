@@ -71,7 +71,7 @@ import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
 import com.google.firebase.example.friendlymeals.R
 import com.google.firebase.example.friendlymeals.data.model.GroceryItem
-import com.google.firebase.example.friendlymeals.data.schema.LocalStore
+import com.google.firebase.example.friendlymeals.data.schema.StoreSchema
 import com.google.firebase.example.friendlymeals.ui.theme.BorderColor
 import com.google.firebase.example.friendlymeals.ui.theme.FriendlyMealsTheme
 import com.google.firebase.example.friendlymeals.ui.theme.LightTeal
@@ -84,14 +84,16 @@ object GroceryListRoute
 
 @Composable
 fun GroceryListScreen(
-    viewModel: GroceryListViewModel = hiltViewModel()
+    viewModel: GroceryListViewModel = hiltViewModel(),
+    showError: () -> Unit
 ) {
     val groceries = viewModel.groceries.collectAsStateWithLifecycle()
-    val localizerState = viewModel.localizerState.collectAsStateWithLifecycle()
+    val uiState = viewModel.uiState.collectAsStateWithLifecycle()
 
     GroceryListScreenContent(
         groceries = groceries.value,
-        localizerState = localizerState.value,
+        uiState = uiState.value,
+        showError = showError,
         onAddItem = viewModel::addItem,
         onToggleItem = viewModel::toggleItem,
         onDeleteItem = viewModel::deleteItem,
@@ -103,7 +105,8 @@ fun GroceryListScreen(
 @Composable
 fun GroceryListScreenContent(
     groceries: List<GroceryItem>,
-    localizerState: LocalizerUiState = LocalizerUiState.Idle,
+    uiState: StoreLocalizerUiState = StoreLocalizerUiState.Idle,
+    showError: () -> Unit = {},
     onAddItem: (String) -> Unit = {},
     onToggleItem: (GroceryItem) -> Unit = {},
     onDeleteItem: (GroceryItem) -> Unit = {},
@@ -127,7 +130,7 @@ fun GroceryListScreenContent(
                     onLocalize(lat, lng)
                 },
                 onFailure = {
-                    //TODO: handle failure
+                   showError()
                 }
             )
         }
@@ -141,7 +144,7 @@ fun GroceryListScreenContent(
                     onLocalize(lat, lng)
                 },
                 onFailure = {
-                    //TODO: handle failure
+                    showError()
                 }
             )
         } else {
@@ -264,8 +267,8 @@ fun GroceryListScreenContent(
                 }
             }
             if (showBottomSheet) {
-                LocalizerBottomSheet(
-                    uiState = localizerState,
+                StoreLocalizerBottomSheet(
+                    uiState = uiState,
                     onDismiss = {
                         showBottomSheet = false
                         onResetLocalizer()
@@ -276,7 +279,7 @@ fun GroceryListScreenContent(
                                 onLocalize(lat, lng)
                             },
                             onFailure = {
-                                //TODO: handle failure
+                                showError()
                             }
                         )
                     }
@@ -363,8 +366,8 @@ fun GroceryCard(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LocalizerBottomSheet(
-    uiState: LocalizerUiState,
+fun StoreLocalizerBottomSheet(
+    uiState: StoreLocalizerUiState,
     onDismiss: () -> Unit,
     onRetry: () -> Unit
 ) {
@@ -373,7 +376,6 @@ fun LocalizerBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Color(0xFFF7F9FB),
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
     ) {
         Column(
@@ -386,18 +388,16 @@ fun LocalizerBottomSheet(
                 text = stringResource(R.string.store_localizer_title),
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
-                color = TextColor,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
             Text(
                 text = stringResource(R.string.store_localizer_subtitle),
                 fontSize = 14.sp,
-                color = Color.Gray,
                 modifier = Modifier.padding(bottom = 20.dp)
             )
 
             when (uiState) {
-                is LocalizerUiState.Idle -> {
+                is StoreLocalizerUiState.Idle -> {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -414,12 +414,11 @@ fun LocalizerBottomSheet(
                         Text(
                             text = stringResource(R.string.store_localizer_determining_location),
                             fontSize = 16.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = TextColor
+                            fontWeight = FontWeight.Medium
                         )
                     }
                 }
-                is LocalizerUiState.Loading -> {
+                is StoreLocalizerUiState.Loading -> {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -436,12 +435,11 @@ fun LocalizerBottomSheet(
                         Text(
                             text = stringResource(R.string.store_localizer_locating_stores),
                             fontSize = 16.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = TextColor
+                            fontWeight = FontWeight.Medium
                         )
                     }
                 }
-                is LocalizerUiState.Error -> {
+                is StoreLocalizerUiState.Error -> {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -465,7 +463,7 @@ fun LocalizerBottomSheet(
                         }
                     }
                 }
-                is LocalizerUiState.Success -> {
+                is StoreLocalizerUiState.Success -> {
                     if (uiState.stores.isEmpty()) {
                         Box(
                             modifier = Modifier
@@ -473,10 +471,7 @@ fun LocalizerBottomSheet(
                                 .padding(vertical = 40.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                stringResource(R.string.store_localizer_no_stores),
-                                color = Color.Gray
-                            )
+                            Text(stringResource(R.string.store_localizer_no_stores))
                         }
                     } else {
                         LazyColumn(
@@ -495,7 +490,7 @@ fun LocalizerBottomSheet(
 }
 
 @Composable
-fun StoreCard(store: LocalStore) {
+fun StoreCard(store: StoreSchema) {
     val uriHandler = LocalUriHandler.current
 
     Card(
@@ -678,7 +673,7 @@ fun hasLocationPermission(context: Context): Boolean {
 fun getCurrentLocation(
     fusedLocationClient: FusedLocationProviderClient,
     onSuccess: (Double, Double) -> Unit,
-    onFailure: (Exception) -> Unit
+    onFailure: () -> Unit
 ) {
     val priority = Priority.PRIORITY_HIGH_ACCURACY
     val cancellationTokenSource = CancellationTokenSource()
@@ -688,12 +683,11 @@ fun getCurrentLocation(
             if (location != null) {
                 onSuccess(location.latitude, location.longitude)
             } else {
-                onFailure(Exception("Location is null"))
-                //TODO: Fix OnFailure logic
+                onFailure()
             }
         }
-        .addOnFailureListener { exception ->
-            onFailure(exception)
+        .addOnFailureListener {
+            onFailure()
         }
 }
 
