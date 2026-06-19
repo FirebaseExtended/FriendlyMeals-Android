@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import com.google.firebase.example.friendlymeals.data.datasource.AIRemoteDataSource
 import com.google.firebase.example.friendlymeals.data.schema.MealSchema
 import com.google.firebase.example.friendlymeals.data.schema.RecipeSchema
+import com.google.firebase.example.friendlymeals.data.schema.StoreSchema
 import javax.inject.Inject
 
 class AIRepository @Inject constructor(
@@ -11,6 +12,22 @@ class AIRepository @Inject constructor(
 ) {
     suspend fun generateIngredients(image: Bitmap): String {
         return aiRemoteDataSource.generateIngredients(image)
+    }
+
+    suspend fun localizeIngredients(
+        ingredients: List<String>,
+        latitude: Double,
+        longitude: Double,
+        currentTime: String,
+        dayOfWeek: String
+    ): List<StoreSchema> {
+        return aiRemoteDataSource.localizeIngredients(
+            ingredients,
+            latitude,
+            longitude,
+            currentTime,
+            dayOfWeek
+        )
     }
 
     suspend fun generateRecipe(ingredients: String, notes: String): RecipeSchema? {

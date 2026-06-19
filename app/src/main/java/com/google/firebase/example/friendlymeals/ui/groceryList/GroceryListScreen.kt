@@ -1,5 +1,12 @@
 package com.google.firebase.example.friendlymeals.ui.groceryList
 
+import android.Manifest.permission.ACCESS_COARSE_LOCATION
+import android.Manifest.permission.ACCESS_FINE_LOCATION
+import android.annotation.SuppressLint
+import android.content.Context
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -24,21 +31,28 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -47,15 +61,23 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.CancellationTokenSource
 import com.google.firebase.example.friendlymeals.R
 import com.google.firebase.example.friendlymeals.data.model.GroceryItem
+import com.google.firebase.example.friendlymeals.data.schema.StoreSchema
 import com.google.firebase.example.friendlymeals.ui.theme.BorderColor
 import com.google.firebase.example.friendlymeals.ui.theme.FriendlyMealsTheme
 import com.google.firebase.example.friendlymeals.ui.theme.LightTeal
 import com.google.firebase.example.friendlymeals.ui.theme.Teal
 import com.google.firebase.example.friendlymeals.ui.theme.TextColor
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -63,26 +85,78 @@ object GroceryListRoute
 
 @Composable
 fun GroceryListScreen(
-    viewModel: GroceryListViewModel = hiltViewModel()
+    viewModel: GroceryListViewModel = hiltViewModel(),
+    showError: () -> Unit
 ) {
     val groceries = viewModel.groceries.collectAsStateWithLifecycle()
+    val uiState = viewModel.uiState.collectAsStateWithLifecycle()
 
     GroceryListScreenContent(
         groceries = groceries.value,
+        uiState = uiState.value,
+        showError = showError,
         onAddItem = viewModel::addItem,
         onToggleItem = viewModel::toggleItem,
-        onDeleteItem = viewModel::deleteItem
+        onDeleteItem = viewModel::deleteItem,
+        onLocalize = viewModel::localizeGroceryList,
+        onResetLocalizer = viewModel::resetLocalizer
     )
 }
 
 @Composable
 fun GroceryListScreenContent(
     groceries: List<GroceryItem>,
+    uiState: StoreLocalizerUiState = StoreLocalizerUiState.Idle,
+    showError: () -> Unit = {},
     onAddItem: (String) -> Unit = {},
     onToggleItem: (GroceryItem) -> Unit = {},
-    onDeleteItem: (GroceryItem) -> Unit = {}
+    onDeleteItem: (GroceryItem) -> Unit = {},
+    onLocalize: (Double, Double) -> Unit = { _, _ -> },
+    onResetLocalizer: () -> Unit = {}
 ) {
     var inputText by remember { mutableStateOf("") }
+    val context = LocalContext.current
+    val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
+    var showBottomSheet by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val fineLocationGranted = permissions[ACCESS_FINE_LOCATION] ?: false
+        val coarseLocationGranted = permissions[ACCESS_COARSE_LOCATION] ?: false
+        if (fineLocationGranted || coarseLocationGranted) {
+            showBottomSheet = true
+            coroutineScope.launch {
+                getCurrentLocation(fusedLocationClient,
+                    onSuccess = { lat, lng ->
+                        onLocalize(lat, lng)
+                    },
+                    onFailure = {
+                        showError()
+                    }
+                )
+            }
+        }
+    }
+
+    suspend fun startLocalizer() {
+        if (hasLocationPermission(context)) {
+            showBottomSheet = true
+            getCurrentLocation(fusedLocationClient,
+                onSuccess = { lat, lng ->
+                    onLocalize(lat, lng)
+                },
+                onFailure = {
+                    showError()
+                }
+            )
+        } else {
+            permissionLauncher.launch(
+                arrayOf(ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION)
+            )
+        }
+    }
 
     fun handleAdd() {
         if (inputText.isNotBlank()) {
@@ -104,6 +178,24 @@ fun GroceryListScreenContent(
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold
                 )
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                IconButton(
+                    onClick = {
+                        coroutineScope.launch {
+                            startLocalizer()
+                        }
+                    },
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_map_pin),
+                        contentDescription = stringResource(R.string.store_localizer_button_content_description),
+                        tint = Teal,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
             }
         }
     ) { innerPadding ->
@@ -182,6 +274,27 @@ fun GroceryListScreenContent(
                     }
                 }
             }
+            if (showBottomSheet) {
+                StoreLocalizerBottomSheet(
+                    uiState = uiState,
+                    onDismiss = {
+                        showBottomSheet = false
+                        onResetLocalizer()
+                    },
+                    onRetry = {
+                        coroutineScope.launch {
+                            getCurrentLocation(fusedLocationClient,
+                                onSuccess = { lat, lng ->
+                                    onLocalize(lat, lng)
+                                },
+                                onFailure = {
+                                    showError()
+                                }
+                            )
+                        }
+                    }
+                )
+            }
         }
     }
 }
@@ -258,6 +371,331 @@ fun GroceryCard(
                 )
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun StoreLocalizerBottomSheet(
+    uiState: StoreLocalizerUiState,
+    onDismiss: () -> Unit,
+    onRetry: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.store_localizer_title),
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            Text(
+                text = stringResource(R.string.store_localizer_subtitle),
+                fontSize = 14.sp,
+                modifier = Modifier.padding(bottom = 20.dp)
+            )
+
+            when (uiState) {
+                is StoreLocalizerUiState.Idle -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 40.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator(
+                            color = Teal,
+                            modifier = Modifier.size(48.dp)
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Text(
+                            text = stringResource(R.string.store_localizer_determining_location),
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+                is StoreLocalizerUiState.Loading -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 40.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator(
+                            color = Teal,
+                            modifier = Modifier.size(48.dp)
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Text(
+                            text = stringResource(R.string.store_localizer_locating_stores),
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+                is StoreLocalizerUiState.Error -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = uiState.message,
+                            fontSize = 16.sp,
+                            color = Color.Red,
+                            fontWeight = FontWeight.Medium
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Button(
+                            onClick = onRetry,
+                            colors = ButtonDefaults.buttonColors(containerColor = Teal)
+                        ) {
+                            Text(stringResource(R.string.store_localizer_retry))
+                        }
+                    }
+                }
+                is StoreLocalizerUiState.Success -> {
+                    if (uiState.stores.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 40.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(stringResource(R.string.store_localizer_no_stores))
+                        }
+                    } else {
+                        LazyColumn(
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            items(uiState.stores) { store ->
+                                StoreCard(store = store)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun StoreCard(store: StoreSchema) {
+    val uriHandler = LocalUriHandler.current
+
+    Card(
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = store.mapUrl.isNotBlank()) {
+                uriHandler.openUri(store.mapUrl)
+            }
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(18.dp)
+                .fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = store.name,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextColor
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        text = store.address,
+                        fontSize = 14.sp,
+                        color = Color.Gray
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .background(Color(0xFFE8F5E9), RoundedCornerShape(8.dp))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_map_pin),
+                        contentDescription = "Place icon",
+                        tint = Color(0xFF2E7D32),
+                        modifier = Modifier.size(14.dp)
+                    )
+
+                    Spacer(modifier = Modifier.width(4.dp))
+
+                    Text(
+                        text = store.distance,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF2E7D32)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (store.openNow) {
+                    Row(
+                        modifier = Modifier
+                            .background(Color(0xFFE8F5E9), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .background(Color(0xFF4CAF50), CircleShape)
+                        )
+
+                        Spacer(modifier = Modifier.width(6.dp))
+
+                        Text(
+                            text = stringResource(R.string.store_localizer_open_now),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF2E7D32)
+                        )
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier
+                            .background(Color(0xFFFFEBEE), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .background(Color(0xFFE57373), CircleShape)
+                        )
+
+                        Spacer(modifier = Modifier.width(6.dp))
+
+                        Text(
+                            text = stringResource(R.string.store_localizer_closed),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFFC62828)
+                        )
+                    }
+                }
+
+                if (store.closingSoon) {
+                    Row(
+                        modifier = Modifier
+                            .background(Color(0xFFFFF3E0), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .background(Color(0xFFFF9800), CircleShape)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = stringResource(R.string.store_localizer_closing_soon),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFFEF6C00)
+                        )
+                    }
+                }
+
+                val parkingColor = if (store.hasParking) Color(0xFFE3F2FD) else Color(0xFFECEFF1)
+                val parkingTextColor = if (store.hasParking) Color(0xFF1565C0) else Color(0xFF455A64)
+                val text = if (store.hasParking) R.string.store_localizer_parking else R.string.store_localizer_no_parking
+
+                Text(
+                    text = stringResource(text),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = parkingTextColor,
+                    modifier = Modifier
+                        .background(parkingColor, RoundedCornerShape(8.dp))
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                )
+            }
+
+            if (store.parkingDetails.isNotBlank()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = store.parkingDetails,
+                    fontSize = 12.sp,
+                    color = Color.Gray,
+                    lineHeight = 16.sp
+                )
+            }
+        }
+    }
+}
+
+fun hasLocationPermission(context: Context): Boolean {
+    return ContextCompat.checkSelfPermission(
+        context,
+        ACCESS_FINE_LOCATION
+    ) == PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(
+        context,
+        ACCESS_COARSE_LOCATION
+    ) == PackageManager.PERMISSION_GRANTED
+}
+
+@SuppressLint("MissingPermission")
+suspend fun getCurrentLocation(
+    fusedLocationClient: FusedLocationProviderClient,
+    onSuccess: (Double, Double) -> Unit,
+    onFailure: () -> Unit
+) {
+    val priority = Priority.PRIORITY_HIGH_ACCURACY
+    val cancellationTokenSource = CancellationTokenSource()
+
+    val location = fusedLocationClient
+        .getCurrentLocation(priority, cancellationTokenSource.token)
+        .await()
+
+    if (location != null) {
+        onSuccess(location.latitude, location.longitude)
+    } else {
+        onFailure()
     }
 }
 

@@ -2,9 +2,9 @@
 agp = "9.2.1"
 coilCompose = "2.7.0"
 exifinterface = "1.4.2"
-firebaseAi = "17.12.0"
-firebaseAiOndevice = "16.0.0-beta02"
-firebaseBom = "34.13.0"
+firebaseAi = "17.13.0"
+firebaseAiOndevice = "16.0.0-beta03"
+firebaseBom = "34.15.0"
 kotlin = "2.3.21"
 coreKtx = "1.18.0"
 junit = "4.13.2"
@@ -25,6 +25,7 @@ kotlinxSerializationJson = "1.11.0"
 richtextCommonmark = "1.0.0-alpha04"
 firebasePerf = "2.0.2"
 cameraView = "1.6.1"
+playServicesLocation = "21.3.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -63,6 +64,7 @@ androidx-camera-core = { group = "androidx.camera", name = "camera-core", versio
 androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "cameraView" }
 androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "cameraView" }
 androidx-camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "cameraView" }
+play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -20,24 +20,70 @@ import com.google.firebase.ai.type.PublicPreviewAPI
 import com.google.firebase.ai.type.content
 import com.google.firebase.example.friendlymeals.data.schema.MealSchema
 import com.google.firebase.example.friendlymeals.data.schema.RecipeSchema
+import com.google.firebase.example.friendlymeals.data.schema.StoreLocalizerResult
 import com.google.firebase.perf.performance
 import com.google.firebase.perf.trace
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
+import com.google.firebase.ai.type.LatLng
+import com.google.firebase.ai.type.Tool
+import com.google.firebase.ai.type.ToolConfig
+import com.google.firebase.ai.type.retrievalConfig
+import com.google.firebase.example.friendlymeals.data.schema.StoreSchema
 
 @OptIn(PublicPreviewAPI::class)
 class AIRemoteDataSource @Inject constructor(
-    aiModel: FirebaseAI,
+    private val aiModel: FirebaseAI,
     private val remoteConfig: FirebaseRemoteConfig
 ) {
     private val json = Json { ignoreUnknownKeys = true }
+
     private val hybridGenerativeModel = aiModel.generativeModel(
         modelName = remoteConfig.getString(HYBRID_CLOUD_MODEL_KEY),
         onDeviceConfig = OnDeviceConfig(mode = InferenceMode.PREFER_IN_CLOUD)
     )
 
     private val templateGenerativeModel = aiModel.templateGenerativeModel()
+
+    suspend fun localizeIngredients(
+        ingredients: List<String>,
+        latitude: Double,
+        longitude: Double,
+        currentTime: String,
+        dayOfWeek: String
+    ): List<StoreSchema> {
+        val groundingModel = aiModel.generativeModel(
+            modelName = remoteConfig.getString(GROUNDING_MODEL_KEY),
+            tools = listOf(Tool.googleMaps()),
+            toolConfig = ToolConfig(
+                retrievalConfig = retrievalConfig {
+                    latLng = LatLng(latitude = latitude, longitude = longitude)
+                    languageCode = LANGUAGE
+                }
+            )
+        )
+
+        val groundingPrompt = remoteConfig.getString(GROUNDING_PROMPT_KEY)
+            .replace("{{ingredients}}", ingredients.joinToString(", "))
+            .replace("{{dayOfWeek}}", dayOfWeek)
+            .replace("{{currentTime}}", currentTime)
+
+        return try {
+            val response = groundingModel.generateContent(groundingPrompt)
+            val rawText = response.text ?: return emptyList()
+            
+            val cleanJson = rawText
+                .replace("```json", "")
+                .replace("```", "")
+                .trim()
+
+            json.decodeFromString<StoreLocalizerResult>(cleanJson).stores
+        } catch (e: Exception) {
+            Log.e(TAG, "Error localizing ingredients", e)
+            emptyList()
+        }
+    }
 
     suspend fun generateIngredients(image: Bitmap): String {
         // Adding a Performance Monitoring trace is completely optional. Traces can help you
@@ -142,6 +188,8 @@ class AIRemoteDataSource @Inject constructor(
         private const val SCAN_MEAL_KEY = "scan_meal"
         private const val HYBRID_CLOUD_MODEL_KEY = "hybrid_cloud_model"
         private const val HYBRID_INGREDIENTS_PROMPT_KEY = "hybrid_ingredients_prompt"
+        private const val GROUNDING_MODEL_KEY = "grounding_model"
+        private const val GROUNDING_PROMPT_KEY = "grounding_prompt"
 
         //Template input fields
         private const val IMAGE_DATA_FIELD = "imageData"
@@ -152,6 +200,9 @@ class AIRemoteDataSource @Inject constructor(
 
         //Template input values
         private const val MIME_TYPE_VALUE = "image/jpeg"
+
+        //Grounding with Maps config
+        private const val LANGUAGE = "en_US"
 
         //Class TAG
         private const val TAG = "AIRemoteDataSource"

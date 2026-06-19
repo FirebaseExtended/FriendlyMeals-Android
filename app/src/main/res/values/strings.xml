@@ -64,4 +64,16 @@
     <string name="add_to_grocery_list_button">Add ingredients to Grocery List</string>
     <string name="added_to_grocery_list_toast">Added to Grocery List!</string>
     <string name="grocery_list_empty_message">Your grocery list is empty</string>
+    <string name="store_localizer_title">Ingredient-to-Store Localizer</string>
+    <string name="store_localizer_subtitle">Find stores nearby with the ingredients you need.</string>
+    <string name="store_localizer_determining_location">Determining your location…</string>
+    <string name="store_localizer_locating_stores">Locating nearest stores with Google Maps…</string>
+    <string name="store_localizer_no_stores">No stores found matching your ingredients nearby.</string>
+    <string name="store_localizer_open_now">Open Now</string>
+    <string name="store_localizer_closed">Closed</string>
+    <string name="store_localizer_closing_soon">Closing Soon</string>
+    <string name="store_localizer_retry">Retry</string>
+    <string name="store_localizer_parking">🅿️ Parking Available</string>
+    <string name="store_localizer_no_parking">No Parking</string>
+    <string name="store_localizer_button_content_description">Store Localizer</string>
 </resources>

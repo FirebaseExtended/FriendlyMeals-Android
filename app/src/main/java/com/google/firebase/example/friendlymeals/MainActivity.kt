@@ -143,7 +143,12 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                             composable<GroceryListRoute> {
-                                GroceryListScreen()
+                                GroceryListScreen(
+                                    showError = {
+                                        val message = this@MainActivity.getString(R.string.error_message)
+                                        scope.launch { snackbarHostState.showSnackbar(message) }
+                                    }
+                                )
                             }
                         }
                     }

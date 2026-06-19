@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?><defaults>
     <entry>
+        <key>grounding_model</key>
+        <value>gemini-3.1-flash-lite</value>
+    </entry>
+    <entry>
+        <key>grounding_prompt</key>
+        <value>What are the nearest grocery stores or markets near me that stock these ingredients: {{ingredients}}? For each place, tell me their business hours, if it's open right now on {{dayOfWeek}} at {{currentTime}}, and if it's closing in less than 30 minutes. Tell me what the parking situation is like at each place: is there a dedicated lot or should I look for street parking? Tell the Map URL so I can open it in Google Maps. Format your response strictly as a JSON object with a "stores" array containing store objects. Each store object must have these EXACT keys: "name": string, "address": string, "distance": string, "openNow": boolean, "closingSoon": boolean, "hasParking": boolean, "parkingDetails": string, "mapUrl": string. Do NOT include markdown code block formatting (like ```json). Output only the raw JSON string.</value>
+    </entry>
+    <entry>
         <key>hybrid_cloud_model</key>
         <value>gemini-3.1-flash-lite</value>
     </entry>
