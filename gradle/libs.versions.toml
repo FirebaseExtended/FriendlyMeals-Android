@@ -2,9 +2,9 @@
 agp = "9.2.1"
 coilCompose = "2.7.0"
 exifinterface = "1.4.2"
-firebaseAi = "17.12.0"
-firebaseAiOndevice = "16.0.0-beta02"
-firebaseBom = "34.13.0"
+firebaseAi = "17.13.0"
+firebaseAiOndevice = "16.0.0-beta03"
+firebaseBom = "34.15.0"
 kotlin = "2.3.21"
 coreKtx = "1.18.0"
 junit = "4.13.2"
@@ -65,7 +65,6 @@ androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", 
 androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "cameraView" }
 androidx-camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "cameraView" }
 play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
-compose-material-icons-core = { module = "androidx.compose.material:material-icons-core" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -27,8 +27,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -47,6 +45,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -77,6 +76,8 @@ import com.google.firebase.example.friendlymeals.ui.theme.FriendlyMealsTheme
 import com.google.firebase.example.friendlymeals.ui.theme.LightTeal
 import com.google.firebase.example.friendlymeals.ui.theme.Teal
 import com.google.firebase.example.friendlymeals.ui.theme.TextColor
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -117,6 +118,7 @@ fun GroceryListScreenContent(
     val context = LocalContext.current
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
     var showBottomSheet by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
@@ -125,18 +127,20 @@ fun GroceryListScreenContent(
         val coarseLocationGranted = permissions[ACCESS_COARSE_LOCATION] ?: false
         if (fineLocationGranted || coarseLocationGranted) {
             showBottomSheet = true
-            getCurrentLocation(fusedLocationClient,
-                onSuccess = { lat, lng ->
-                    onLocalize(lat, lng)
-                },
-                onFailure = {
-                   showError()
-                }
-            )
+            coroutineScope.launch {
+                getCurrentLocation(fusedLocationClient,
+                    onSuccess = { lat, lng ->
+                        onLocalize(lat, lng)
+                    },
+                    onFailure = {
+                        showError()
+                    }
+                )
+            }
         }
     }
 
-    fun startLocalizer() {
+    suspend fun startLocalizer() {
         if (hasLocationPermission(context)) {
             showBottomSheet = true
             getCurrentLocation(fusedLocationClient,
@@ -178,11 +182,15 @@ fun GroceryListScreenContent(
                 Spacer(modifier = Modifier.weight(1f))
 
                 IconButton(
-                    onClick = { startLocalizer() },
+                    onClick = {
+                        coroutineScope.launch {
+                            startLocalizer()
+                        }
+                    },
                     modifier = Modifier.size(48.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Place,
+                        painter = painterResource(R.drawable.ic_map_pin),
                         contentDescription = stringResource(R.string.store_localizer_button_content_description),
                         tint = Teal,
                         modifier = Modifier.size(28.dp)
@@ -274,14 +282,16 @@ fun GroceryListScreenContent(
                         onResetLocalizer()
                     },
                     onRetry = {
-                        getCurrentLocation(fusedLocationClient,
-                            onSuccess = { lat, lng ->
-                                onLocalize(lat, lng)
-                            },
-                            onFailure = {
-                                showError()
-                            }
-                        )
+                        coroutineScope.launch {
+                            getCurrentLocation(fusedLocationClient,
+                                onSuccess = { lat, lng ->
+                                    onLocalize(lat, lng)
+                                },
+                                onFailure = {
+                                    showError()
+                                }
+                            )
+                        }
                     }
                 )
             }
@@ -539,7 +549,7 @@ fun StoreCard(store: StoreSchema) {
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Place,
+                        painter = painterResource(R.drawable.ic_map_pin),
                         contentDescription = "Place icon",
                         tint = Color(0xFF2E7D32),
                         modifier = Modifier.size(14.dp)
@@ -670,7 +680,7 @@ fun hasLocationPermission(context: Context): Boolean {
 }
 
 @SuppressLint("MissingPermission")
-fun getCurrentLocation(
+suspend fun getCurrentLocation(
     fusedLocationClient: FusedLocationProviderClient,
     onSuccess: (Double, Double) -> Unit,
     onFailure: () -> Unit
@@ -678,17 +688,15 @@ fun getCurrentLocation(
     val priority = Priority.PRIORITY_HIGH_ACCURACY
     val cancellationTokenSource = CancellationTokenSource()
 
-    fusedLocationClient.getCurrentLocation(priority, cancellationTokenSource.token)
-        .addOnSuccessListener { location ->
-            if (location != null) {
-                onSuccess(location.latitude, location.longitude)
-            } else {
-                onFailure()
-            }
-        }
-        .addOnFailureListener {
-            onFailure()
-        }
+    val location = fusedLocationClient
+        .getCurrentLocation(priority, cancellationTokenSource.token)
+        .await()
+
+    if (location != null) {
+        onSuccess(location.latitude, location.longitude)
+    } else {
+        onFailure()
+    }
 }
 
 @Preview
