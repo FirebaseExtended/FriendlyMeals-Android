@@ -16,16 +16,35 @@
         <value>Please analyze this image and list all visible food ingredients. Output ONLY a comma-separated list of ingredients. Do not include any introductory text, headers, or concluding remarks. Provide the raw list only. Be specific with measurements where possible.</value>
     </entry>
     <entry>
-        <key>scan_meal</key>
-        <value>scan-meal-template-v1-0-0</value>
+        <key>scan_meal_model</key>
+        <value>gemini-3.1-flash-lite</value>
+    </entry>
+    <entry>
+        <key>scan_meal_prompt</key>
+        <value>Analyze this image of a meal, and estimate the nutritional content.
+Return the result in JSON format matching the schema:
+- protein, fat, carbs, sugar (strings with units, e.g., '20g')
+- ingredients (list of strings)</value>
     </entry>
     <entry>
         <key>generate_recipe_photo_gemini</key>
         <value>generate-recipe-photo-gemini-template-v1-0-0</value>
     </entry>
     <entry>
-        <key>generate_recipe</key>
-        <value>generate-recipe-template-v1-0-0</value>
+        <key>generate_recipe_model</key>
+        <value>gemini-3.1-flash-lite</value>
+    </entry>
+    <entry>
+        <key>generate_recipe_prompt</key>
+        <value>Create a detailed recipe based on these ingredients: {{ingredients}}.
+
+Format requirements:
+ - 'instructions': Provide the cooking steps as a clear list of instructions separated by newlines. Use bold formatting on the step numbers. Use Markdown.
+ - 'ingredients': List all necessary items, including quantities.
+ - 'prepTime', 'cookTime', 'servings': Short strings (e.g., "15 mins").
+ - 'tags': Generate a list of 3-5 relevant category tags (e.g., "Healthy", "Vegan", "Gluten-Free", "Dessert", "Quick").
+
+{{notes}}</value>
     </entry>
     <entry>
         <key>live_model_name</key>

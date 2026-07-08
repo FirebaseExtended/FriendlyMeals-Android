@@ -1,6 +1,8 @@
 package com.google.firebase.example.friendlymeals.data.datasource
 
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.util.Base64
 import android.util.Log
 import com.google.firebase.Firebase
 import com.google.firebase.ai.DownloadStatus.DownloadCompleted
@@ -162,16 +164,39 @@ class AIRemoteDataSource @Inject constructor(
     }
 
     suspend fun scanMeal(imageData: String): MealSchema? {
-        val response = templateGenerativeModel.generateContent(
-            templateId = remoteConfig.getString(SCAN_MEAL_KEY),
-            inputs = mapOf(
-                MIME_TYPE_FIELD to MIME_TYPE_VALUE,
-                IMAGE_DATA_FIELD to imageData
-            )
+        val imageBytes = Base64.decode(imageData, Base64.DEFAULT)
+        val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+            ?: return null
+
+        val scanModel = aiModel.generativeModel(
+            modelName = remoteConfig.getString(SCAN_MEAL_MODEL_KEY),
+            generationConfig = generationConfig {
+                responseMimeType = "application/json"
+                responseSchema = Schema.obj(
+                    mapOf(
+                        "protein" to Schema.string(),
+                        "fat" to Schema.string(),
+                        "carbs" to Schema.string(),
+                        "sugar" to Schema.string(),
+                        "ingredients" to Schema.array(Schema.string(), description = "ingredients in the meal")
+                    )
+                )
+            }
         )
 
-        return response.text?.let {
-            json.decodeFromString<MealSchema>(it)
+        val prompt = content {
+            image(bitmap)
+            text(remoteConfig.getString(SCAN_MEAL_PROMPT_KEY))
+        }
+
+        val response = scanModel.generateContent(prompt)
+
+        return response.text?.let { rawText ->
+            val cleanJson = rawText
+                .replace("```json", "")
+                .replace("```", "")
+                .trim()
+            json.decodeFromString<MealSchema>(cleanJson)
         }
     }
 
@@ -211,19 +236,15 @@ class AIRemoteDataSource @Inject constructor(
         private const val GENERATE_RECIPE_MODEL_KEY = "generate_recipe_model"
         private const val GENERATE_RECIPE_PROMPT_KEY = "generate_recipe_prompt"
         private const val GENERATE_RECIPE_PHOTO_GEMINI_KEY = "generate_recipe_photo_gemini"
-        private const val SCAN_MEAL_KEY = "scan_meal"
+        private const val SCAN_MEAL_MODEL_KEY = "scan_meal_model"
+        private const val SCAN_MEAL_PROMPT_KEY = "scan_meal_prompt"
         private const val HYBRID_CLOUD_MODEL_KEY = "hybrid_cloud_model"
         private const val HYBRID_INGREDIENTS_PROMPT_KEY = "hybrid_ingredients_prompt"
         private const val GROUNDING_MODEL_KEY = "grounding_model"
         private const val GROUNDING_PROMPT_KEY = "grounding_prompt"
 
         //Template input fields
-        private const val IMAGE_DATA_FIELD = "imageData"
-        private const val MIME_TYPE_FIELD = "mimeType"
         private const val RECIPE_TITLE_FIELD = "recipeTitle"
-
-        //Template input values
-        private const val MIME_TYPE_VALUE = "image/jpeg"
 
         //Grounding with Maps config
         private const val LANGUAGE = "en_US"

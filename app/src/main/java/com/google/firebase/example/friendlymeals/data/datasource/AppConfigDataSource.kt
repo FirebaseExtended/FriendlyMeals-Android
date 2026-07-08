@@ -40,7 +40,8 @@ class AppConfigDataSource @Inject constructor(
             "live_model_name" -> "gemini-2.5-flash-native-audio-preview-12-2025"
             "live_model_prompt" -> "You are a helpful live cooking assistant. The user is currently preparing the following recipe: Title: {{title}} Prep time: {{prepTime}}, Cook time: {{cookTime}}, Servings: {{servings}}  Ingredients: {{ingredients}}  Instructions: {{instructions}}  The user will stream real-time video of their cooking and ask questions like \"Is this the expected texture of the recipe?\". Confirm or deny accurately based on the recipe context and the video content. Be concise and helpful. If the user asks you to add an ingredient or item to their grocery list or shopping list, call the addIngredientToGroceryList function."
             "model_name" -> "gemini-2.5-flash-image"
-            "scan_meal" -> "scan-meal-template-v1-0-0"
+            "scan_meal_model" -> "gemini-3.1-flash-lite"
+            "scan_meal_prompt" -> "Analyze this image of a meal, and estimate the nutritional content.\nReturn the result in JSON format matching the schema:\n- protein, fat, carbs, sugar (strings with units, e.g., '20g')\n- ingredients (list of strings)"
             "schema_model_name" -> "gemini-2.5-flash"
             else -> remoteConfig.getString(key)
         }
