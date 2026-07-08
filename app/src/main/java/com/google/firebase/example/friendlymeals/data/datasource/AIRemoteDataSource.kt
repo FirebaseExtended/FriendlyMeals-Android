@@ -17,7 +17,9 @@ import com.google.firebase.ai.OnDeviceModelStatus.Companion.DOWNLOADING
 import com.google.firebase.ai.OnDeviceModelStatus.Companion.UNAVAILABLE
 import com.google.firebase.ai.type.ImagePart
 import com.google.firebase.ai.type.PublicPreviewAPI
+import com.google.firebase.ai.type.Schema
 import com.google.firebase.ai.type.content
+import com.google.firebase.ai.type.generationConfig
 import com.google.firebase.example.friendlymeals.data.schema.MealSchema
 import com.google.firebase.example.friendlymeals.data.schema.RecipeSchema
 import com.google.firebase.example.friendlymeals.data.schema.StoreLocalizerResult
@@ -110,18 +112,42 @@ class AIRemoteDataSource @Inject constructor(
     }
 
     suspend fun generateRecipe(ingredients: String, notes: String): RecipeSchema? {
-        val response = templateGenerativeModel.generateContent(
-            templateId = remoteConfig.getString(GENERATE_RECIPE_KEY),
-            inputs = buildMap {
-                put(INGREDIENTS_FIELD, ingredients)
-                if (notes.isNotBlank()) {
-                    put(NOTES_FIELD, notes)
-                }
+        val recipeModel = aiModel.generativeModel(
+            modelName = remoteConfig.getString(GENERATE_RECIPE_MODEL_KEY),
+            generationConfig = generationConfig {
+                responseMimeType = "application/json"
+                responseSchema = Schema.obj(
+                    mapOf(
+                        "title" to Schema.string(),
+                        "instructions" to Schema.string(),
+                        "ingredients" to Schema.array(Schema.string(), description = "ingredients for recipe"),
+                        "prepTime" to Schema.string(),
+                        "cookTime" to Schema.string(),
+                        "servings" to Schema.string(),
+                        "tags" to Schema.array(Schema.string(), description = "relevant tags for recipe")
+                    )
+                )
             }
         )
 
-        return response.text?.let {
-            json.decodeFromString<RecipeSchema>(it)
+        val notesSection = if (notes.isNotBlank()) {
+            "IMPORTANT CUISINE AND DIETARY NOTES: $notes"
+        } else {
+            ""
+        }
+        val prompt = remoteConfig.getString(GENERATE_RECIPE_PROMPT_KEY)
+            .replace("{{ingredients}}", ingredients)
+            .replace("{{notes}}", notesSection)
+            .trim()
+
+        val response = recipeModel.generateContent(prompt)
+
+        return response.text?.let { rawText ->
+            val cleanJson = rawText
+                .replace("```json", "")
+                .replace("```", "")
+                .trim()
+            json.decodeFromString<RecipeSchema>(cleanJson)
         }
     }
 
@@ -182,7 +208,8 @@ class AIRemoteDataSource @Inject constructor(
 
     companion object {
         //Remote Config Keys
-        private const val GENERATE_RECIPE_KEY = "generate_recipe"
+        private const val GENERATE_RECIPE_MODEL_KEY = "generate_recipe_model"
+        private const val GENERATE_RECIPE_PROMPT_KEY = "generate_recipe_prompt"
         private const val GENERATE_RECIPE_PHOTO_GEMINI_KEY = "generate_recipe_photo_gemini"
         private const val SCAN_MEAL_KEY = "scan_meal"
         private const val HYBRID_CLOUD_MODEL_KEY = "hybrid_cloud_model"
@@ -193,8 +220,6 @@ class AIRemoteDataSource @Inject constructor(
         //Template input fields
         private const val IMAGE_DATA_FIELD = "imageData"
         private const val MIME_TYPE_FIELD = "mimeType"
-        private const val INGREDIENTS_FIELD = "ingredients"
-        private const val NOTES_FIELD = "notes"
         private const val RECIPE_TITLE_FIELD = "recipeTitle"
 
         //Template input values

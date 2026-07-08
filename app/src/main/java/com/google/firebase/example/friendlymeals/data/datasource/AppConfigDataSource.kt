@@ -28,7 +28,8 @@ class AppConfigDataSource @Inject constructor(
     private fun getLocalDefault(key: String): String {
         return when (key) {
             "generate_ingredients" -> "generate-ingredients-template-v1-0-0"
-            "generate_recipe" -> "generate-recipe-template-v1-0-0"
+            "generate_recipe_model" -> "gemini-3.1-flash-lite"
+            "generate_recipe_prompt" -> "Create a detailed recipe based on these ingredients: {{ingredients}}.\n\nFormat requirements:\n - 'instructions': Provide the cooking steps as a clear list of instructions separated by newlines. Use bold formatting on the step numbers. Use Markdown.\n - 'ingredients': List all necessary items, including quantities.\n - 'prepTime', 'cookTime', 'servings': Short strings (e.g., \"15 mins\").\n - 'tags': Generate a list of 3-5 relevant category tags (e.g., \"Healthy\", \"Vegan\", \"Gluten-Free\", \"Dessert\", \"Quick\").\n\n{{notes}}"
             "generate_recipe_photo_gemini" -> "generate-recipe-photo-gemini-template-v1-0-0"
             "generate_recipe_photo_imagen" -> "generate-recipe-photo-imagen-template-v1-0-0"
             "grounding_model" -> "gemini-3.1-flash-lite"
