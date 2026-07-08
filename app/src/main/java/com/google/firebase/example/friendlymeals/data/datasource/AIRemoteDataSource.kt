@@ -23,7 +23,6 @@ import com.google.firebase.example.friendlymeals.data.schema.RecipeSchema
 import com.google.firebase.example.friendlymeals.data.schema.StoreLocalizerResult
 import com.google.firebase.perf.performance
 import com.google.firebase.perf.trace
-import com.google.firebase.remoteconfig.FirebaseRemoteConfig
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import com.google.firebase.ai.type.LatLng
@@ -35,13 +34,13 @@ import com.google.firebase.example.friendlymeals.data.schema.StoreSchema
 @OptIn(PublicPreviewAPI::class)
 class AIRemoteDataSource @Inject constructor(
     private val aiModel: FirebaseAI,
-    private val remoteConfig: FirebaseRemoteConfig
+    private val remoteConfig: AppConfigDataSource
 ) {
     private val json = Json { ignoreUnknownKeys = true }
 
     private val hybridGenerativeModel = aiModel.generativeModel(
         modelName = remoteConfig.getString(HYBRID_CLOUD_MODEL_KEY),
-        onDeviceConfig = OnDeviceConfig(mode = InferenceMode.PREFER_IN_CLOUD)
+        onDeviceConfig = OnDeviceConfig(mode = InferenceMode.PREFER_ON_DEVICE)
     )
 
     private val templateGenerativeModel = aiModel.templateGenerativeModel()

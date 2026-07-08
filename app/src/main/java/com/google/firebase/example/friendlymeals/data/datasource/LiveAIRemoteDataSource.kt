@@ -12,13 +12,12 @@ import com.google.firebase.ai.type.Tool
 import com.google.firebase.ai.type.FunctionDeclaration
 import com.google.firebase.ai.type.Schema
 import com.google.firebase.example.friendlymeals.data.model.Recipe
-import com.google.firebase.remoteconfig.FirebaseRemoteConfig
 import javax.inject.Inject
 
 @OptIn(PublicPreviewAPI::class)
 class LiveAIRemoteDataSource @Inject constructor(
     private val aiModel: FirebaseAI,
-    private val remoteConfig: FirebaseRemoteConfig
+    private val remoteConfig: AppConfigDataSource
 ) {
     private val groceryListTool = Tool.functionDeclarations(listOf(
         FunctionDeclaration(
