@@ -28,7 +28,11 @@ sealed class BottomNavItem(val route: Any, val icon: Int, val label: Int) {
 }
 
 @Composable
-fun BottomNavBar(navigateTo: (Any) -> Unit) {
+fun BottomNavBar(
+    isFirestoreAvailable: Boolean = true,
+    onDisabledItemClicked: () -> Unit = {},
+    navigateTo: (Any) -> Unit
+) {
     var selectedItemIndex by remember { mutableIntStateOf(1) }
 
     val items = listOf(
@@ -41,22 +45,39 @@ fun BottomNavBar(navigateTo: (Any) -> Unit) {
     NavigationBar {
         items.forEachIndexed { index, item ->
             val label = stringResource(item.label)
+            val isEnabled = isFirestoreAvailable || (item != BottomNavItem.RecipeList && item != BottomNavItem.GroceryList)
+
+            val itemColors = if (isEnabled) {
+                NavigationBarItemDefaults.colors(
+                    selectedIconColor = Teal,
+                    indicatorColor = Color.Transparent,
+                    selectedTextColor = Teal
+                )
+            } else {
+                NavigationBarItemDefaults.colors(
+                    unselectedIconColor = Color.Gray.copy(alpha = 0.4f),
+                    unselectedTextColor = Color.Gray.copy(alpha = 0.4f),
+                    selectedIconColor = Color.Gray.copy(alpha = 0.4f),
+                    selectedTextColor = Color.Gray.copy(alpha = 0.4f),
+                    indicatorColor = Color.Transparent
+                )
+            }
 
             NavigationBarItem(
                 selected = selectedItemIndex == index,
                 onClick = {
-                    selectedItemIndex = index
-                    navigateTo(item.route)
+                    if (isEnabled) {
+                        selectedItemIndex = index
+                        navigateTo(item.route)
+                    } else {
+                        onDisabledItemClicked()
+                    }
                 },
                 icon = { Icon(
                     painter = painterResource(item.icon),
                     contentDescription = label
                 ) },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = Teal,
-                    indicatorColor = Color.Transparent,
-                    selectedTextColor = Teal
-                ),
+                colors = itemColors,
                 label = { Text(label) }
             )
         }

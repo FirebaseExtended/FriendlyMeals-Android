@@ -12,9 +12,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -37,6 +39,7 @@ import com.google.firebase.example.friendlymeals.ui.recipeList.filter.FilterRout
 import com.google.firebase.example.friendlymeals.ui.recipeList.filter.FilterScreen
 import com.google.firebase.example.friendlymeals.ui.scanMeal.ScanMealRoute
 import com.google.firebase.example.friendlymeals.ui.scanMeal.ScanMealScreen
+import com.google.firebase.example.friendlymeals.ui.shared.AppViewModel
 import com.google.firebase.example.friendlymeals.ui.shared.BottomNavBar
 import com.google.firebase.example.friendlymeals.ui.theme.FriendlyMealsTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -53,6 +56,8 @@ class MainActivity : ComponentActivity() {
             val scope = rememberCoroutineScope()
             val snackbarHostState = remember { SnackbarHostState() }
             val navController = rememberNavController()
+            val appViewModel = hiltViewModel<AppViewModel>()
+            val isFirestoreAvailable by appViewModel.isFirestoreAvailable.collectAsStateWithLifecycle()
 
             FriendlyMealsTheme {
                 Surface(
@@ -62,7 +67,16 @@ class MainActivity : ComponentActivity() {
                     Scaffold(
                         modifier = Modifier.fillMaxSize(),
                         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-                        bottomBar = { BottomNavBar { navigateTo(navController, route = it) } }
+                        bottomBar = {
+                            BottomNavBar(
+                                isFirestoreAvailable = isFirestoreAvailable,
+                                onDisabledItemClicked = {
+                                    val message = this@MainActivity.getString(R.string.firestore_disabled_message)
+                                    scope.launch { snackbarHostState.showSnackbar(message) }
+                                },
+                                navigateTo = { navigateTo(navController, route = it) }
+                            )
+                        }
                     ) { innerPadding ->
                         NavHost(
                             navController = navController,

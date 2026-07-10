@@ -54,6 +54,7 @@
     <string name="camera_text">Take a picture of ingredients</string>
     <string name="error_message">Sorry, something went wrong :(</string>
     <string name="camera_error_message">Error loading camera</string>
+    <string name="firestore_disabled_message">Firestore is not set up for this project in the Firebase Console.</string>
     <string name="live_assistant_title">Live Cooking Assistant</string>
     <string name="live_assistant_hint">Point your camera at your cooking and ask questions</string>
     <string name="nav_bar_grocery_list">Grocery List</string>

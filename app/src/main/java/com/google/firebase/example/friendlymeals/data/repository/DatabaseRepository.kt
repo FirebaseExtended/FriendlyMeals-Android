@@ -80,4 +80,8 @@ class DatabaseRepository @Inject constructor(
     suspend fun addIngredientsToGroceries(userId: String, ingredients: List<String>) {
         databaseRemoteDataSource.addIngredientsToGroceries(userId, ingredients)
     }
+
+    suspend fun isFirestoreAvailable(): Boolean {
+        return databaseRemoteDataSource.isFirestoreAvailable()
+    }
 }

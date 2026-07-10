@@ -306,6 +306,16 @@ class DatabaseRemoteDataSource @Inject constructor(
         batch.commit().await()
     }
 
+    suspend fun isFirestoreAvailable(): Boolean {
+        return try {
+            firestore.collection(USERS_COLLECTION).limit(1).get().await()
+            true
+        } catch (e: Exception) {
+            Log.w("DatabaseRemoteDataSource", "Firestore is not set up or unavailable: ${e.message}")
+            false
+        }
+    }
+
     companion object {
         //Collections
         private const val USERS_COLLECTION = "users"
