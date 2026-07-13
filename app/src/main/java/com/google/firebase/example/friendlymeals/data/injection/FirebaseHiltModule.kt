@@ -5,6 +5,8 @@ import com.google.firebase.Firebase
 import com.google.firebase.ai.FirebaseAI
 import com.google.firebase.ai.ai
 import com.google.firebase.ai.type.GenerativeBackend
+import com.google.firebase.appcheck.appCheck
+import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
 import com.google.firebase.example.friendlymeals.R
@@ -26,6 +28,13 @@ import dagger.hilt.components.SingletonComponent
 @InstallIn(SingletonComponent::class)
 object FirebaseHiltModule {
     private const val TAG = "FirebaseHiltModule"
+
+    init {
+        // Guarantee App Check is configured before any Firebase service provided by this module is instantiated.
+        Firebase.appCheck.installAppCheckProviderFactory(
+            DebugAppCheckProviderFactory.getInstance()
+        )
+    }
 
     @Provides fun auth(): FirebaseAuth = Firebase.auth
 

@@ -33,6 +33,9 @@ androidx-exifinterface = { module = "androidx.exifinterface:exifinterface", vers
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
 firebase-ai = { module = "com.google.firebase:firebase-ai", version.ref = "firebaseAi" }
 firebase-ai-ondevice = { module = "com.google.firebase:firebase-ai-ondevice", version.ref = "firebaseAiOndevice" }
+firebase-appcheck = { module = "com.google.firebase:firebase-appcheck" }
+firebase-appcheck-debug = { module = "com.google.firebase:firebase-appcheck-debug" }
+firebase-appcheck-playintegrity = { module = "com.google.firebase:firebase-appcheck-playintegrity" }
 firebase-auth = { module = "com.google.firebase:firebase-auth" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 firebase-config = { module = "com.google.firebase:firebase-config" }
