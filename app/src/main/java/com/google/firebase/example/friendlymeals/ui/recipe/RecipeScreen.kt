@@ -48,6 +48,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.google.firebase.example.friendlymeals.R
+import com.google.firebase.example.friendlymeals.data.injection.FirebaseHiltModule
 import com.google.firebase.example.friendlymeals.ui.shared.RatingButton
 import com.google.firebase.example.friendlymeals.ui.theme.FriendlyMealsTheme
 import com.google.firebase.example.friendlymeals.ui.theme.LightTeal
@@ -134,7 +135,10 @@ fun RecipeScreenContent(
                                 .fillMaxSize()
                                 .background(Color.LightGray)
                         ) {
-                            if (recipeViewState.recipe.imageUri != null) {
+                            val shouldShowImage = recipeViewState.recipe.imageUri != null && (
+                                !recipeViewState.recipe.imageUri.contains("firebasestorage") || FirebaseHiltModule.isStorageSetup()
+                            )
+                            if (shouldShowImage) {
                                 AsyncImage(
                                     model = ImageRequest.Builder(LocalContext.current)
                                         .data(recipeViewState.recipe.imageUri)

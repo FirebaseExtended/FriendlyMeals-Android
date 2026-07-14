@@ -42,6 +42,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.google.firebase.example.friendlymeals.R
+import com.google.firebase.example.friendlymeals.data.injection.FirebaseHiltModule
 import com.google.firebase.example.friendlymeals.ui.theme.FriendlyMealsTheme
 import com.google.firebase.example.friendlymeals.ui.theme.LightTeal
 import com.google.firebase.example.friendlymeals.ui.theme.SelectedStarColor
@@ -137,7 +138,10 @@ fun RecipeCard(
                     .clip(RoundedCornerShape(16.dp))
                     .background(LightTeal)
             ) {
-                if (recipe.imageUri != null) {
+                val shouldShowImage = recipe.imageUri != null && (
+                    !recipe.imageUri.contains("firebasestorage") || FirebaseHiltModule.isStorageSetup()
+                )
+                if (shouldShowImage) {
                     AsyncImage(
                         model = ImageRequest.Builder(LocalContext.current)
                             .data(recipe.imageUri)

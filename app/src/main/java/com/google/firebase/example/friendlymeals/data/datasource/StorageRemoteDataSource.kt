@@ -9,16 +9,19 @@ import androidx.core.graphics.scale
 import java.util.UUID
 
 class StorageRemoteDataSource @Inject constructor(
-    private val storageRef: StorageReference
+    private val storageRef: StorageReference?
 ) {
-    suspend fun addImage(image: Bitmap): String {
+    fun isStorageAvailable(): Boolean = storageRef != null
+
+    suspend fun addImage(image: Bitmap): String? {
+        val ref = storageRef ?: return null
         val scaledBitmap = scaleBitmap(image)
         val stream = ByteArrayOutputStream()
         scaledBitmap.compress(Bitmap.CompressFormat.WEBP, 70, stream)
         val data = stream.toByteArray()
 
         val randomId = UUID.randomUUID().toString()
-        val imagesRef = storageRef.child("images/$randomId.webp")
+        val imagesRef = ref.child("images/$randomId.webp")
         imagesRef.putBytes(data).await()
 
         return imagesRef.downloadUrl.await().toString()

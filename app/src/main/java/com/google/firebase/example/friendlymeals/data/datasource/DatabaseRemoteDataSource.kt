@@ -10,6 +10,7 @@ import com.google.firebase.example.friendlymeals.ui.recipeList.RecipeListItem
 import com.google.firebase.example.friendlymeals.ui.recipeList.filter.FilterOptions
 import com.google.firebase.example.friendlymeals.ui.recipeList.filter.SortByFilter
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Source
 import com.google.firebase.firestore.PipelineResult
 import com.google.firebase.firestore.PipelineSource
 import com.google.firebase.firestore.pipeline.AggregateFunction.Companion.average
@@ -22,6 +23,7 @@ import com.google.firebase.firestore.pipeline.Expression.Companion.variable
 import com.google.firebase.firestore.pipeline.SearchStage
 import com.google.firebase.firestore.snapshots
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.tasks.await
@@ -308,10 +310,11 @@ class DatabaseRemoteDataSource @Inject constructor(
 
     suspend fun isFirestoreAvailable(): Boolean {
         return try {
-            firestore.collection(USERS_COLLECTION).limit(1).get().await()
+            withTimeout(2000) {
+                firestore.collection(USERS_COLLECTION).limit(1).get(Source.SERVER).await()
+            }
             true
         } catch (e: Exception) {
-            Log.w("DatabaseRemoteDataSource", "Firestore is not set up or unavailable: ${e.message}")
             false
         }
     }

@@ -17,6 +17,7 @@ import com.google.firebase.remoteconfig.FirebaseRemoteConfig
 import com.google.firebase.remoteconfig.FirebaseRemoteConfigException
 import com.google.firebase.remoteconfig.remoteConfig
 import com.google.firebase.remoteconfig.remoteConfigSettings
+import com.google.firebase.app
 import com.google.firebase.storage.StorageReference
 import com.google.firebase.storage.storage
 import dagger.Module
@@ -43,8 +44,32 @@ object FirebaseHiltModule {
         return Firebase.ai(backend = GenerativeBackend.googleAI())
     }
 
-    @Provides fun storage(): StorageReference {
-        return Firebase.storage.reference
+    @Volatile
+    var isStorageSetupRuntime: Boolean = true
+
+    fun isStorageSetup(): Boolean {
+        if (!isStorageSetupRuntime) return false
+        return try {
+            val bucket = Firebase.app.options.storageBucket
+            !bucket.isNullOrEmpty()
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    @Provides fun storage(): StorageReference? {
+        return try {
+            if (isStorageSetup()) {
+                val storage = Firebase.storage
+                storage.maxUploadRetryTimeMillis = 2000
+                storage.maxOperationRetryTimeMillis = 2000
+                storage.reference
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            null
+        }
     }
 
     @Provides fun firestore(): FirebaseFirestore {
