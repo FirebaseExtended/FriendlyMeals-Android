@@ -42,9 +42,25 @@ class AIRemoteDataSource @Inject constructor(
 ) {
     private val json = Json { ignoreUnknownKeys = true }
 
-    private val hybridGenerativeModel = aiModel.generativeModel(
-        modelName = remoteConfig.getString(HYBRID_CLOUD_MODEL_KEY),
-        onDeviceConfig = OnDeviceConfig(mode = InferenceMode.PREFER_ON_DEVICE)
+    private val generativeModel = aiModel.generativeModel(
+        modelName = remoteConfig.getString(GENERATIVE_MODEL_KEY),
+    )
+    
+    private val scanModel = aiModel.generativeModel(
+        modelName = remoteConfig.getString(SCAN_MEAL_MODEL_KEY),
+        generationConfig = generationConfig {
+            responseMimeType = "application/json"
+            responseSchema = Schema.obj(
+                mapOf(
+                    "protein" to Schema.string(),
+                    "fat" to Schema.string(),
+                    "carbs" to Schema.string(),
+                    "sugar" to Schema.string(),
+                    "ingredients" to Schema.array(Schema.string(), description = "ingredients in the meal")
+                )
+            )
+        },
+        //onDeviceConfig = OnDeviceConfig(mode = InferenceMode.PREFER_ON_DEVICE)
     )
 
     private val templateGenerativeModel = aiModel.templateGenerativeModel()
@@ -97,7 +113,7 @@ class AIRemoteDataSource @Inject constructor(
                 text(remoteConfig.getString(HYBRID_INGREDIENTS_PROMPT_KEY))
             }
 
-            val response = hybridGenerativeModel.generateContent(prompt)
+            val response = generativeModel.generateContent(prompt)
 
             // This is an optional function that adds an attribute to the Performance Monitoring
             // trace. It helps you identify the source of the inference.
@@ -168,21 +184,7 @@ class AIRemoteDataSource @Inject constructor(
         val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
             ?: return null
 
-        val scanModel = aiModel.generativeModel(
-            modelName = remoteConfig.getString(SCAN_MEAL_MODEL_KEY),
-            generationConfig = generationConfig {
-                responseMimeType = "application/json"
-                responseSchema = Schema.obj(
-                    mapOf(
-                        "protein" to Schema.string(),
-                        "fat" to Schema.string(),
-                        "carbs" to Schema.string(),
-                        "sugar" to Schema.string(),
-                        "ingredients" to Schema.array(Schema.string(), description = "ingredients in the meal")
-                    )
-                )
-            }
-        )
+
 
         val prompt = content {
             image(bitmap)
@@ -201,12 +203,12 @@ class AIRemoteDataSource @Inject constructor(
     }
 
     suspend fun loadOnDeviceModel() {
-        when (hybridGenerativeModel.onDeviceExtension?.checkStatus()) {
+        when (scanModel.onDeviceExtension?.checkStatus()) {
             UNAVAILABLE -> {
                 Log.i(TAG, "On-device model is unavailable")
             }
             DOWNLOADABLE -> {
-                hybridGenerativeModel.onDeviceExtension?.download()?.collect { status ->
+                scanModel.onDeviceExtension?.download()?.collect { status ->
                     when (status) {
                         is DownloadStarted ->
                             Log.i(TAG, "Starting download - ${status.bytesToDownload}")
@@ -239,6 +241,7 @@ class AIRemoteDataSource @Inject constructor(
         private const val SCAN_MEAL_MODEL_KEY = "scan_meal_model"
         private const val SCAN_MEAL_PROMPT_KEY = "scan_meal_prompt"
         private const val HYBRID_CLOUD_MODEL_KEY = "hybrid_cloud_model"
+        private const val GENERATIVE_MODEL_KEY = "generative_model"
         private const val HYBRID_INGREDIENTS_PROMPT_KEY = "hybrid_ingredients_prompt"
         private const val GROUNDING_MODEL_KEY = "grounding_model"
         private const val GROUNDING_PROMPT_KEY = "grounding_prompt"
