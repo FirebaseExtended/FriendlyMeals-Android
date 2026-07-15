@@ -32,9 +32,10 @@ object FirebaseHiltModule {
 
     init {
         // Guarantee App Check is configured before any Firebase service provided by this module is instantiated.
-        Firebase.appCheck.installAppCheckProviderFactory(
-            DebugAppCheckProviderFactory.getInstance()
-        )
+        // FEATURE 01
+        // Firebase.appCheck.installAppCheckProviderFactory(
+        //     DebugAppCheckProviderFactory.getInstance()
+        // )
     }
 
     @Provides fun auth(): FirebaseAuth = Firebase.auth

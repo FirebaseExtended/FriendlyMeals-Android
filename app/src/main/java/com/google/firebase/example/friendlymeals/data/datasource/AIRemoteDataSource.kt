@@ -4,15 +4,11 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Base64
 import android.util.Log
-import com.google.firebase.Firebase
 import com.google.firebase.ai.DownloadStatus.DownloadCompleted
 import com.google.firebase.ai.DownloadStatus.DownloadFailed
 import com.google.firebase.ai.DownloadStatus.DownloadInProgress
 import com.google.firebase.ai.DownloadStatus.DownloadStarted
 import com.google.firebase.ai.FirebaseAI
-import com.google.firebase.ai.InferenceMode
-import com.google.firebase.ai.InferenceSource
-import com.google.firebase.ai.OnDeviceConfig
 import com.google.firebase.ai.OnDeviceModelStatus.Companion.AVAILABLE
 import com.google.firebase.ai.OnDeviceModelStatus.Companion.DOWNLOADABLE
 import com.google.firebase.ai.OnDeviceModelStatus.Companion.DOWNLOADING
@@ -25,8 +21,6 @@ import com.google.firebase.ai.type.generationConfig
 import com.google.firebase.example.friendlymeals.data.schema.MealSchema
 import com.google.firebase.example.friendlymeals.data.schema.RecipeSchema
 import com.google.firebase.example.friendlymeals.data.schema.StoreLocalizerResult
-import com.google.firebase.perf.performance
-import com.google.firebase.perf.trace
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import com.google.firebase.ai.type.LatLng
@@ -38,14 +32,14 @@ import com.google.firebase.example.friendlymeals.data.schema.StoreSchema
 @OptIn(PublicPreviewAPI::class)
 class AIRemoteDataSource @Inject constructor(
     private val aiModel: FirebaseAI,
-    private val remoteConfig: AppConfigDataSource
+    private val remoteConfig: AppConfigDataSource,
 ) {
     private val json = Json { ignoreUnknownKeys = true }
 
     private val generativeModel = aiModel.generativeModel(
         modelName = remoteConfig.getString(GENERATIVE_MODEL_KEY),
     )
-    
+
     private val scanModel = aiModel.generativeModel(
         modelName = remoteConfig.getString(SCAN_MEAL_MODEL_KEY),
         generationConfig = generationConfig {
@@ -56,11 +50,14 @@ class AIRemoteDataSource @Inject constructor(
                     "fat" to Schema.string(),
                     "carbs" to Schema.string(),
                     "sugar" to Schema.string(),
-                    "ingredients" to Schema.array(Schema.string(), description = "ingredients in the meal")
+                    "ingredients" to Schema.array(
+                        Schema.string(),
+                        description = "ingredients in the meal"
+                    )
                 )
             )
         },
-        //onDeviceConfig = OnDeviceConfig(mode = InferenceMode.PREFER_ON_DEVICE)
+        // FEATURE 04
     )
 
     private val templateGenerativeModel = aiModel.templateGenerativeModel()
@@ -70,7 +67,7 @@ class AIRemoteDataSource @Inject constructor(
         latitude: Double,
         longitude: Double,
         currentTime: String,
-        dayOfWeek: String
+        dayOfWeek: String,
     ): List<StoreSchema> {
         val groundingModel = aiModel.generativeModel(
             modelName = remoteConfig.getString(GROUNDING_MODEL_KEY),
@@ -91,7 +88,7 @@ class AIRemoteDataSource @Inject constructor(
         return try {
             val response = groundingModel.generateContent(groundingPrompt)
             val rawText = response.text ?: return emptyList()
-            
+
             val cleanJson = rawText
                 .replace("```json", "")
                 .replace("```", "")
@@ -107,26 +104,15 @@ class AIRemoteDataSource @Inject constructor(
     suspend fun generateIngredients(image: Bitmap): String {
         // Adding a Performance Monitoring trace is completely optional. Traces can help you
         // measure how long it takes to generate ingredients on device and in cloud.
-        Firebase.performance.newTrace("hybrid-inference").trace {
-            val prompt = content {
-                image(image)
-                text(remoteConfig.getString(HYBRID_INGREDIENTS_PROMPT_KEY))
-            }
-
-            val response = generativeModel.generateContent(prompt)
-
-            // This is an optional function that adds an attribute to the Performance Monitoring
-            // trace. It helps you identify the source of the inference.
-            putAttribute(
-                "inferenceSource",
-                when (response.inferenceSource) {
-                    InferenceSource.ON_DEVICE -> "On device"
-                    else -> "In cloud"
-                }
-            )
-
-            return response.text.orEmpty()
-        }
+        // FEATURE 02
+        // val prompt = content {
+        //     image(image)
+        //     text(remoteConfig.getString(INGREDIENTS_PROMPT_KEY))
+        // }
+        //
+        // val response = generativeModel.generateContent(prompt)
+        // return response.text.orEmpty()
+        return ""
     }
 
     suspend fun generateRecipe(ingredients: String, notes: String): RecipeSchema? {
@@ -138,11 +124,17 @@ class AIRemoteDataSource @Inject constructor(
                     mapOf(
                         "title" to Schema.string(),
                         "instructions" to Schema.string(),
-                        "ingredients" to Schema.array(Schema.string(), description = "ingredients for recipe"),
+                        "ingredients" to Schema.array(
+                            Schema.string(),
+                            description = "ingredients for recipe"
+                        ),
                         "prepTime" to Schema.string(),
                         "cookTime" to Schema.string(),
                         "servings" to Schema.string(),
-                        "tags" to Schema.array(Schema.string(), description = "relevant tags for recipe")
+                        "tags" to Schema.array(
+                            Schema.string(),
+                            description = "relevant tags for recipe"
+                        )
                     )
                 )
             }
@@ -170,21 +162,21 @@ class AIRemoteDataSource @Inject constructor(
     }
 
     suspend fun generateRecipePhoto(recipeTitle: String): Bitmap? {
-        val response = templateGenerativeModel.generateContent(
-            templateId = remoteConfig.getString(GENERATE_RECIPE_PHOTO_GEMINI_KEY),
-            inputs = mapOf(RECIPE_TITLE_FIELD to recipeTitle)
-        )
-
-        return response.candidates.firstOrNull()?.content?.parts
-            ?.filterIsInstance<ImagePart>()?.firstOrNull()?.image
+        // FEATURE 03
+        // val response = templateGenerativeModel.generateContent(
+        //     templateId = remoteConfig.getString(GENERATE_RECIPE_PHOTO_GEMINI_KEY),
+        //     inputs = mapOf(RECIPE_TITLE_FIELD to recipeTitle)
+        // )
+        //
+        // return response.candidates.firstOrNull()?.content?.parts
+        //     ?.filterIsInstance<ImagePart>()?.firstOrNull()?.image
+        return null
     }
 
     suspend fun scanMeal(imageData: String): MealSchema? {
         val imageBytes = Base64.decode(imageData, Base64.DEFAULT)
         val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
             ?: return null
-
-
 
         val prompt = content {
             image(bitmap)
@@ -207,6 +199,7 @@ class AIRemoteDataSource @Inject constructor(
             UNAVAILABLE -> {
                 Log.i(TAG, "On-device model is unavailable")
             }
+
             DOWNLOADABLE -> {
                 scanModel.onDeviceExtension?.download()?.collect { status ->
                     when (status) {
@@ -214,7 +207,10 @@ class AIRemoteDataSource @Inject constructor(
                             Log.i(TAG, "Starting download - ${status.bytesToDownload}")
 
                         is DownloadInProgress ->
-                            Log.i(TAG, "Download in progress ${status.totalBytesDownloaded} bytes downloaded")
+                            Log.i(
+                                TAG,
+                                "Download in progress ${status.totalBytesDownloaded} bytes downloaded"
+                            )
 
                         is DownloadCompleted ->
                             Log.i(TAG, "On-device model download complete")
@@ -224,9 +220,11 @@ class AIRemoteDataSource @Inject constructor(
                     }
                 }
             }
+
             DOWNLOADING -> {
                 Log.i(TAG, "On-device model is being downloaded")
             }
+
             AVAILABLE -> {
                 Log.i(TAG, "On-device model is available")
             }
@@ -242,7 +240,7 @@ class AIRemoteDataSource @Inject constructor(
         private const val SCAN_MEAL_PROMPT_KEY = "scan_meal_prompt"
         private const val HYBRID_CLOUD_MODEL_KEY = "hybrid_cloud_model"
         private const val GENERATIVE_MODEL_KEY = "generative_model"
-        private const val HYBRID_INGREDIENTS_PROMPT_KEY = "hybrid_ingredients_prompt"
+        private const val INGREDIENTS_PROMPT_KEY = "ingredients_prompt"
         private const val GROUNDING_MODEL_KEY = "grounding_model"
         private const val GROUNDING_PROMPT_KEY = "grounding_prompt"
 

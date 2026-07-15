@@ -31,26 +31,28 @@ class LiveAIRemoteDataSource @Inject constructor(
 
     @OptIn(PublicPreviewAPI::class)
     suspend fun setupLiveSession(recipe: Recipe): LiveSession? {
-        val liveGenerationConfig = liveGenerationConfig {
-            speechConfig = SpeechConfig(voice = Voice(LIVE_MODEL_VOICE))
-            responseModality = ResponseModality.AUDIO
-        }
-
-        val promptTemplate = remoteConfig.getString(LIVE_MODEL_PROMPT_KEY)
-        val instructionText = formatInstructionPrompt(promptTemplate, recipe)
-
-        val liveModel = aiModel.liveModel(
-            modelName = remoteConfig.getString(LIVE_MODEL_NAME_KEY),
-            generationConfig = liveGenerationConfig,
-            systemInstruction = content { text(instructionText) },
-            tools = listOf(groceryListTool)
-        )
-
-        return try {
-            liveModel.connect()
-        } catch (_: Exception) {
-            null
-        }
+        // FEATURE BONUS
+        // val liveGenerationConfig = liveGenerationConfig {
+        //     speechConfig = SpeechConfig(voice = Voice(LIVE_MODEL_VOICE))
+        //     responseModality = ResponseModality.AUDIO
+        // }
+        //
+        // val promptTemplate = remoteConfig.getString(LIVE_MODEL_PROMPT_KEY)
+        // val instructionText = formatInstructionPrompt(promptTemplate, recipe)
+        //
+        // val liveModel = aiModel.liveModel(
+        //     modelName = remoteConfig.getString(LIVE_MODEL_NAME_KEY),
+        //     generationConfig = liveGenerationConfig,
+        //     systemInstruction = content { text(instructionText) },
+        //     tools = listOf(groceryListTool)
+        // )
+        //
+        // return try {
+        //     liveModel.connect()
+        // } catch (_: Exception) {
+        //     null
+        // }
+        return null
     }
 
     private fun formatInstructionPrompt(template: String, recipe: Recipe): String {
