@@ -14,14 +14,14 @@ class AIRepository @Inject constructor(
         return aiRemoteDataSource.generateIngredients(image)
     }
 
-    suspend fun localizeIngredients(
+    suspend fun findStores(
         ingredients: List<String>,
         latitude: Double,
         longitude: Double,
         currentTime: String,
         dayOfWeek: String
     ): List<StoreSchema> {
-        return aiRemoteDataSource.localizeIngredients(
+        return aiRemoteDataSource.findStores(
             ingredients,
             latitude,
             longitude,

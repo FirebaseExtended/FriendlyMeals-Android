@@ -24,8 +24,8 @@ class GroceryListViewModel @Inject constructor(
     private val _groceries = MutableStateFlow<List<GroceryItem>>(emptyList())
     val groceries: StateFlow<List<GroceryItem>> = _groceries.asStateFlow()
 
-    private val _uiState = MutableStateFlow<StoreLocalizerUiState>(StoreLocalizerUiState.Idle)
-    val uiState: StateFlow<StoreLocalizerUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow<StoreFinderUiState>(StoreFinderUiState.Idle)
+    val uiState: StateFlow<StoreFinderUiState> = _uiState.asStateFlow()
 
     val userId: String get() = authRepository.currentUser?.uid.orEmpty()
 
@@ -70,28 +70,28 @@ class GroceryListViewModel @Inject constructor(
         }
     }
 
-    fun resetLocalizer() {
-        _uiState.value = StoreLocalizerUiState.Idle
+    fun resetStoreFinder() {
+        _uiState.value = StoreFinderUiState.Idle
     }
 
-    fun localizeGroceryList(latitude: Double, longitude: Double) {
+    fun findStores(latitude: Double, longitude: Double) {
         val uncheckedIngredients = _groceries.value
             .filter { !it.checked }
             .map { it.name }
 
         if (uncheckedIngredients.isEmpty()) {
-            _uiState.value = StoreLocalizerUiState.Error(EMPTY_ITEMS_ERROR)
+            _uiState.value = StoreFinderUiState.Error(EMPTY_ITEMS_ERROR)
             return
         }
 
-        _uiState.value = StoreLocalizerUiState.Loading
+        _uiState.value = StoreFinderUiState.Loading
 
         launchCatching {
             val now = LocalDateTime.now()
             val dayOfWeek = now.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.US)
             val currentTime = String.format(Locale.US, "%02d:%02d", now.hour, now.minute)
 
-            val stores = aiRepository.localizeIngredients(
+            val stores = aiRepository.findStores(
                 ingredients = uncheckedIngredients,
                 latitude = latitude,
                 longitude = longitude,
@@ -100,9 +100,9 @@ class GroceryListViewModel @Inject constructor(
             )
 
             if (stores.isEmpty()) {
-                _uiState.value = StoreLocalizerUiState.Error(EMPTY_STORE_ERROR)
+                _uiState.value = StoreFinderUiState.Error(EMPTY_STORE_ERROR)
             } else {
-                _uiState.value = StoreLocalizerUiState.Success(stores)
+                _uiState.value = StoreFinderUiState.Success(stores)
             }
         }
     }

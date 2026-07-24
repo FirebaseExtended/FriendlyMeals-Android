@@ -20,16 +20,16 @@ import com.google.firebase.ai.type.PublicPreviewAPI
 import com.google.firebase.ai.type.content
 import com.google.firebase.example.friendlymeals.data.schema.MealSchema
 import com.google.firebase.example.friendlymeals.data.schema.RecipeSchema
-import com.google.firebase.example.friendlymeals.data.schema.StoreLocalizerResult
 import com.google.firebase.perf.performance
 import com.google.firebase.perf.trace
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import com.google.firebase.ai.type.LatLng
-import com.google.firebase.ai.type.Tool
-import com.google.firebase.ai.type.ToolConfig
+import com.google.firebase.ai.type.TemplateTool
+import com.google.firebase.ai.type.TemplateToolConfig
 import com.google.firebase.ai.type.retrievalConfig
+import com.google.firebase.example.friendlymeals.data.schema.StoreFinderResult
 import com.google.firebase.example.friendlymeals.data.schema.StoreSchema
 
 @OptIn(PublicPreviewAPI::class)
@@ -46,17 +46,16 @@ class AIRemoteDataSource @Inject constructor(
 
     private val templateGenerativeModel = aiModel.templateGenerativeModel()
 
-    suspend fun localizeIngredients(
+    suspend fun findStores(
         ingredients: List<String>,
         latitude: Double,
         longitude: Double,
         currentTime: String,
         dayOfWeek: String
     ): List<StoreSchema> {
-        val groundingModel = aiModel.generativeModel(
-            modelName = remoteConfig.getString(GROUNDING_MODEL_KEY),
-            tools = listOf(Tool.googleMaps()),
-            toolConfig = ToolConfig(
+        val groundingModel = aiModel.templateGenerativeModel(
+            tools = listOf(TemplateTool.googleMaps()),
+            toolConfig = TemplateToolConfig(
                 retrievalConfig = retrievalConfig {
                     latLng = LatLng(latitude = latitude, longitude = longitude)
                     languageCode = LANGUAGE
@@ -64,13 +63,16 @@ class AIRemoteDataSource @Inject constructor(
             )
         )
 
-        val groundingPrompt = remoteConfig.getString(GROUNDING_PROMPT_KEY)
-            .replace("{{ingredients}}", ingredients.joinToString(", "))
-            .replace("{{dayOfWeek}}", dayOfWeek)
-            .replace("{{currentTime}}", currentTime)
-
         return try {
-            val response = groundingModel.generateContent(groundingPrompt)
+            val response = groundingModel.generateContent(
+                templateId = remoteConfig.getString(FIND_STORES_KEY),
+                inputs = mapOf(
+                    INGREDIENTS_FIELD to ingredients.joinToString(),
+                    DAY_FIELD to dayOfWeek,
+                    TIME_FIELD to currentTime
+                )
+            )
+
             val rawText = response.text ?: return emptyList()
             
             val cleanJson = rawText
@@ -78,9 +80,9 @@ class AIRemoteDataSource @Inject constructor(
                 .replace("```", "")
                 .trim()
 
-            json.decodeFromString<StoreLocalizerResult>(cleanJson).stores
+            json.decodeFromString<StoreFinderResult>(cleanJson).stores
         } catch (e: Exception) {
-            Log.e(TAG, "Error localizing ingredients", e)
+            Log.e(TAG, "Error finding stores with these ingredients", e)
             emptyList()
         }
     }
@@ -186,10 +188,9 @@ class AIRemoteDataSource @Inject constructor(
         private const val GENERATE_RECIPE_KEY = "generate_recipe"
         private const val GENERATE_RECIPE_PHOTO_GEMINI_KEY = "generate_recipe_photo_gemini"
         private const val SCAN_MEAL_KEY = "scan_meal"
+        private const val FIND_STORES_KEY = "find_stores"
         private const val HYBRID_CLOUD_MODEL_KEY = "hybrid_cloud_model"
         private const val HYBRID_INGREDIENTS_PROMPT_KEY = "hybrid_ingredients_prompt"
-        private const val GROUNDING_MODEL_KEY = "grounding_model"
-        private const val GROUNDING_PROMPT_KEY = "grounding_prompt"
 
         //Template input fields
         private const val IMAGE_DATA_FIELD = "imageData"
@@ -197,6 +198,8 @@ class AIRemoteDataSource @Inject constructor(
         private const val INGREDIENTS_FIELD = "ingredients"
         private const val NOTES_FIELD = "notes"
         private const val RECIPE_TITLE_FIELD = "recipeTitle"
+        private const val DAY_FIELD = "dayOfWeek"
+        private const val TIME_FIELD = "currentTime"
 
         //Template input values
         private const val MIME_TYPE_VALUE = "image/jpeg"
