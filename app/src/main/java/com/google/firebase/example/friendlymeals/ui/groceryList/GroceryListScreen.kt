@@ -98,21 +98,21 @@ fun GroceryListScreen(
         onAddItem = viewModel::addItem,
         onToggleItem = viewModel::toggleItem,
         onDeleteItem = viewModel::deleteItem,
-        onLocalize = viewModel::localizeGroceryList,
-        onResetLocalizer = viewModel::resetLocalizer
+        onFindStore = viewModel::findStores,
+        onResetStores = viewModel::resetStoreFinder
     )
 }
 
 @Composable
 fun GroceryListScreenContent(
     groceries: List<GroceryItem>,
-    uiState: StoreLocalizerUiState = StoreLocalizerUiState.Idle,
+    uiState: StoreFinderUiState = StoreFinderUiState.Idle,
     showError: () -> Unit = {},
     onAddItem: (String) -> Unit = {},
     onToggleItem: (GroceryItem) -> Unit = {},
     onDeleteItem: (GroceryItem) -> Unit = {},
-    onLocalize: (Double, Double) -> Unit = { _, _ -> },
-    onResetLocalizer: () -> Unit = {}
+    onFindStore: (Double, Double) -> Unit = { _, _ -> },
+    onResetStores: () -> Unit = {}
 ) {
     var inputText by remember { mutableStateOf("") }
     val context = LocalContext.current
@@ -130,7 +130,7 @@ fun GroceryListScreenContent(
             coroutineScope.launch {
                 getCurrentLocation(fusedLocationClient,
                     onSuccess = { lat, lng ->
-                        onLocalize(lat, lng)
+                        onFindStore(lat, lng)
                     },
                     onFailure = {
                         showError()
@@ -140,12 +140,12 @@ fun GroceryListScreenContent(
         }
     }
 
-    suspend fun startLocalizer() {
+    suspend fun startStoreFinder() {
         if (hasLocationPermission(context)) {
             showBottomSheet = true
             getCurrentLocation(fusedLocationClient,
                 onSuccess = { lat, lng ->
-                    onLocalize(lat, lng)
+                    onFindStore(lat, lng)
                 },
                 onFailure = {
                     showError()
@@ -184,14 +184,14 @@ fun GroceryListScreenContent(
                 IconButton(
                     onClick = {
                         coroutineScope.launch {
-                            startLocalizer()
+                            startStoreFinder()
                         }
                     },
                     modifier = Modifier.size(48.dp)
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.ic_map_pin),
-                        contentDescription = stringResource(R.string.store_localizer_button_content_description),
+                        contentDescription = stringResource(R.string.store_finder_button_content_description),
                         tint = Teal,
                         modifier = Modifier.size(28.dp)
                     )
@@ -275,17 +275,17 @@ fun GroceryListScreenContent(
                 }
             }
             if (showBottomSheet) {
-                StoreLocalizerBottomSheet(
+                StoreFinderBottomSheet(
                     uiState = uiState,
                     onDismiss = {
                         showBottomSheet = false
-                        onResetLocalizer()
+                        onResetStores()
                     },
                     onRetry = {
                         coroutineScope.launch {
                             getCurrentLocation(fusedLocationClient,
                                 onSuccess = { lat, lng ->
-                                    onLocalize(lat, lng)
+                                    onFindStore(lat, lng)
                                 },
                                 onFailure = {
                                     showError()
@@ -376,8 +376,8 @@ fun GroceryCard(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StoreLocalizerBottomSheet(
-    uiState: StoreLocalizerUiState,
+fun StoreFinderBottomSheet(
+    uiState: StoreFinderUiState,
     onDismiss: () -> Unit,
     onRetry: () -> Unit
 ) {
@@ -395,19 +395,19 @@ fun StoreLocalizerBottomSheet(
                 .padding(bottom = 32.dp)
         ) {
             Text(
-                text = stringResource(R.string.store_localizer_title),
+                text = stringResource(R.string.store_finder_title),
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
             Text(
-                text = stringResource(R.string.store_localizer_subtitle),
+                text = stringResource(R.string.store_finder_subtitle),
                 fontSize = 14.sp,
                 modifier = Modifier.padding(bottom = 20.dp)
             )
 
             when (uiState) {
-                is StoreLocalizerUiState.Idle -> {
+                is StoreFinderUiState.Idle -> {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -422,13 +422,13 @@ fun StoreLocalizerBottomSheet(
                         Spacer(modifier = Modifier.height(16.dp))
 
                         Text(
-                            text = stringResource(R.string.store_localizer_determining_location),
+                            text = stringResource(R.string.store_finder_determining_location),
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Medium
                         )
                     }
                 }
-                is StoreLocalizerUiState.Loading -> {
+                is StoreFinderUiState.Loading -> {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -443,13 +443,13 @@ fun StoreLocalizerBottomSheet(
                         Spacer(modifier = Modifier.height(16.dp))
 
                         Text(
-                            text = stringResource(R.string.store_localizer_locating_stores),
+                            text = stringResource(R.string.store_finder_locating_stores),
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Medium
                         )
                     }
                 }
-                is StoreLocalizerUiState.Error -> {
+                is StoreFinderUiState.Error -> {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -469,11 +469,11 @@ fun StoreLocalizerBottomSheet(
                             onClick = onRetry,
                             colors = ButtonDefaults.buttonColors(containerColor = Teal)
                         ) {
-                            Text(stringResource(R.string.store_localizer_retry))
+                            Text(stringResource(R.string.store_finder_retry))
                         }
                     }
                 }
-                is StoreLocalizerUiState.Success -> {
+                is StoreFinderUiState.Success -> {
                     if (uiState.stores.isEmpty()) {
                         Box(
                             modifier = Modifier
@@ -481,7 +481,7 @@ fun StoreLocalizerBottomSheet(
                                 .padding(vertical = 40.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(stringResource(R.string.store_localizer_no_stores))
+                            Text(stringResource(R.string.store_finder_no_stores))
                         }
                     } else {
                         LazyColumn(
@@ -589,7 +589,7 @@ fun StoreCard(store: StoreSchema) {
                         Spacer(modifier = Modifier.width(6.dp))
 
                         Text(
-                            text = stringResource(R.string.store_localizer_open_now),
+                            text = stringResource(R.string.store_finder_open_now),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = Color(0xFF2E7D32)
@@ -611,7 +611,7 @@ fun StoreCard(store: StoreSchema) {
                         Spacer(modifier = Modifier.width(6.dp))
 
                         Text(
-                            text = stringResource(R.string.store_localizer_closed),
+                            text = stringResource(R.string.store_finder_closed),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = Color(0xFFC62828)
@@ -633,7 +633,7 @@ fun StoreCard(store: StoreSchema) {
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = stringResource(R.string.store_localizer_closing_soon),
+                            text = stringResource(R.string.store_finder_closing_soon),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = Color(0xFFEF6C00)
@@ -643,7 +643,7 @@ fun StoreCard(store: StoreSchema) {
 
                 val parkingColor = if (store.hasParking) Color(0xFFE3F2FD) else Color(0xFFECEFF1)
                 val parkingTextColor = if (store.hasParking) Color(0xFF1565C0) else Color(0xFF455A64)
-                val text = if (store.hasParking) R.string.store_localizer_parking else R.string.store_localizer_no_parking
+                val text = if (store.hasParking) R.string.store_finder_parking else R.string.store_finder_no_parking
 
                 Text(
                     text = stringResource(text),

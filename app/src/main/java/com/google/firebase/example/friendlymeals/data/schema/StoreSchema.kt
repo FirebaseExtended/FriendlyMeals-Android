@@ -15,6 +15,6 @@ data class StoreSchema(
 )
 
 @Serializable
-data class StoreLocalizerResult(
+data class StoreFinderResult(
     val stores: List<StoreSchema> = emptyList()
 )
