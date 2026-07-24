@@ -82,7 +82,7 @@ class AIRemoteDataSource @Inject constructor(
 
             json.decodeFromString<StoreFinderResult>(cleanJson).stores
         } catch (e: Exception) {
-            Log.e(TAG, "Error finding stored with these ingredients", e)
+            Log.e(TAG, "Error finding stores with these ingredients", e)
             emptyList()
         }
     }
