@@ -2,9 +2,9 @@
 agp = "9.2.1"
 coilCompose = "2.7.0"
 exifinterface = "1.4.2"
-firebaseAi = "17.13.0"
-firebaseAiOndevice = "16.0.0-beta03"
-firebaseBom = "34.15.0"
+firebaseAi = "17.15.0"
+firebaseAiOndevice = "16.0.0-beta04"
+firebaseBom = "34.17.0"
 kotlin = "2.3.21"
 coreKtx = "1.18.0"
 junit = "4.13.2"
@@ -13,7 +13,7 @@ espressoCore = "3.7.0"
 lifecycleRuntimeKtx = "2.10.0"
 activityCompose = "1.13.0"
 composeBom = "2026.05.00"
-googleServices = "4.4.4"
+googleServices = "4.5.0"
 googleHilt = "2.59.2"
 googleKotlinKsp = "2.3.2"
 hiltAndroidCompiler = "2.59.2"
@@ -33,6 +33,8 @@ androidx-exifinterface = { module = "androidx.exifinterface:exifinterface", vers
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
 firebase-ai = { module = "com.google.firebase:firebase-ai", version.ref = "firebaseAi" }
 firebase-ai-ondevice = { module = "com.google.firebase:firebase-ai-ondevice", version.ref = "firebaseAiOndevice" }
+firebase-appcheck-debug = { module = "com.google.firebase:firebase-appcheck-debug" }
+firebase-appcheck-playintegrity = { module = "com.google.firebase:firebase-appcheck-playintegrity" }
 firebase-auth = { module = "com.google.firebase:firebase-auth" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 firebase-config = { module = "com.google.firebase:firebase-config" }
