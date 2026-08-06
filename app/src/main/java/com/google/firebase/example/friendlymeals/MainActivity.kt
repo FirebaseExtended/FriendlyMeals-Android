@@ -176,8 +176,6 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun initializeAppCheck() {
-        Firebase.initialize(context = this)
-        
         if (BuildConfig.DEBUG) {
             Firebase.appCheck.installAppCheckProviderFactory(
                 DebugAppCheckProviderFactory.getInstance()
