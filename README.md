@@ -15,6 +15,7 @@ Welcome to **FriendlyMeals**, an app that demonstrates how to integrate Firebase
 - **Firebase Authentication**: Learn how to keep your user's data safe with Firebase Authentication.
 - **Cloud Storage**: Learn how to store images in Cloud Storage, and how to display them in a Jetpack Compose UI.
 - **Remote Config**: Learn how to change the behavior and appearance of your app remotely with Remote Config.
+- **App Check**: Learn how to protect your app backend from abuse with App Check.
 - **Upcoming**: More Firebase features will be added soon!
 
 ## 🛠️ Getting Started
@@ -41,9 +42,28 @@ Welcome to **FriendlyMeals**, an app that demonstrates how to integrate Firebase
 1. During the "Add app" workflow, **download the `google-services.json` file**.
    - Move this file into this directory of the app: `FriendlyMeals-Android/app`.
    - If you didn't download this file during the "Add app" workflow, you can always [obtain it later](https://support.google.com/firebase/answer/7015592).
+  
+1. **Enable Firebase services in the Firebase console**
+     - Go to the **Firebase Authentication** section of the console, enable the service and choose the Anonymous authentication method.
+     - Go to the **Firestore** section of the console and enable Firestore Enterprise edition.
+     - Go to the **Firebase AI Logic** section of the console and enable the Gemini Developer API.
+     - Go to the **App Check** section of the console, enable this service, and register your Android app using the Play Integrity provider (you'll need to provide the SHA-256 fingerprint of your app's signing certificate).
+     - Go to the **Remote Config** section of the console and enable this service.
+     - Go to the **Firebase Storage** section of the console and enable this service (you'll need to set up a billing account since this service is only available on the Blaze plan).
 
 1. **Run the app**
    - Build and run in Android Studio on an Android emulator or physical device.
+  
+1. **Set up App Check**
+     - Once your app is running on the emulator, look for the App Check debug token in your logs, and copy it.
+     - Then, in the Firebase console, go to the Security > App Check > Apps tab and locate your Android app.
+     - Click the three-dot menu and select **Manage debug tokens**.
+     - Paste your token in the "value" field and save it.
+
+The log will be similar to this:
+
+     DebugAppCheckProvider: Enter this debug secret into the allow list
+     in the Firebase Console for your project: 123a4567-b89c-12d3-e456-789012345678
 
 ## 🤝 Contributing
 
