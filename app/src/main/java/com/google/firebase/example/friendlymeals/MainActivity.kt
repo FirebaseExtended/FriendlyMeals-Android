@@ -21,6 +21,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navigation
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.google.firebase.Firebase
+import com.google.firebase.appcheck.appCheck
+import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
+import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
 import com.google.firebase.example.friendlymeals.ui.generate.GenerateRoute
 import com.google.firebase.example.friendlymeals.ui.generate.GenerateScreen
 import com.google.firebase.example.friendlymeals.ui.groceryList.GroceryListRoute
@@ -39,6 +43,7 @@ import com.google.firebase.example.friendlymeals.ui.scanMeal.ScanMealRoute
 import com.google.firebase.example.friendlymeals.ui.scanMeal.ScanMealScreen
 import com.google.firebase.example.friendlymeals.ui.shared.BottomNavBar
 import com.google.firebase.example.friendlymeals.ui.theme.FriendlyMealsTheme
+import com.google.firebase.initialize
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
@@ -48,6 +53,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setSoftInputMode()
+        initializeAppCheck()
 
         setContent {
             val scope = rememberCoroutineScope()
@@ -167,5 +173,17 @@ class MainActivity : ComponentActivity() {
 
     private fun setSoftInputMode() {
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING)
+    }
+
+    private fun initializeAppCheck() {
+        if (BuildConfig.DEBUG) {
+            Firebase.appCheck.installAppCheckProviderFactory(
+                DebugAppCheckProviderFactory.getInstance()
+            )
+        } else {
+            Firebase.appCheck.installAppCheckProviderFactory(
+                PlayIntegrityAppCheckProviderFactory.getInstance()
+            )
+        }
     }
 }
