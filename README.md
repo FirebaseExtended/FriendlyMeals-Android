@@ -44,19 +44,19 @@ Welcome to **FriendlyMeals**, an app that demonstrates how to integrate Firebase
    - If you didn't download this file during the "Add app" workflow, you can always [obtain it later](https://support.google.com/firebase/answer/7015592).
   
 1. **Enable Firebase services in the Firebase console**
-     - Go to the **Firebase Authentication** section of the console, enable the service and choose the Anonymous authentication method.
-     - Go to the **Firestore** section of the console and enable Firestore Enterprise edition.
-     - Go to the **Firebase AI Logic** section of the console and enable the Gemini Developer API.
-     - Go to the **App Check** section of the console, enable this service, and register your Android app using the Play Integrity provider (you'll need to provide the SHA-256 fingerprint of your app's signing certificate).
-     - Go to the **Remote Config** section of the console and enable this service.
-     - Go to the **Firebase Storage** section of the console and enable this service (you'll need to set up a billing account since this service is only available on the Blaze plan).
+     - Go to the [**Firebase Authentication**](https://console.firebase.google.com/project/_/authentication/?useAutoProject=true) section of the console, enable the service and choose the Anonymous authentication method.
+     - Go to the [**Firestore**](https://console.firebase.google.com/project/_/firestore/?useAutoProject=true) section of the console and enable Firestore Enterprise edition.
+     - Go to the [**Firebase AI Logic**](https://console.firebase.google.com/project/_/ailogic/?useAutoProject=true) section of the console and enable the Gemini Developer API.
+     - Go to the [**App Check**](https://console.firebase.google.com/project/_/appcheck/?useAutoProject=true) section of the console, enable this service, and register your Android app using the Play Integrity provider (you'll need to provide the SHA-256 fingerprint of your app's signing certificate).
+     - Go to the [**Remote Config**](https://console.firebase.google.com/project/_/config/?useAutoProject=true) section of the console and enable this service.
+     - Go to the [**Firebase Storage**](https://console.firebase.google.com/project/_/storage/?useAutoProject=true) section of the console and enable this service (you'll need to set up a billing account since this service is only available on the Blaze plan).
 
 1. **Run the app**
    - Build and run in Android Studio on an Android emulator or physical device.
   
 1. **Set up App Check**
      - Once your app is running on the emulator, look for the App Check debug token in your logs, and copy it.
-     - Then, in the Firebase console, go to the Security > App Check > Apps tab and locate your Android app.
+     - Then, in the Firebase console, go to the [Security > App Check > Apps tab](https://console.firebase.google.com/project/_/appcheck/apps/?useAutoProject=true) and locate your Android app.
      - Click the three-dot menu and select **Manage debug tokens**.
      - Paste your token in the "value" field and save it.
 
