@@ -1,0 +1,16 @@
+---
+model: "gemini-3.5-flash-lite"
+output:
+  format: json
+  schema:
+    protein: string
+    fat: string
+    carbs: string
+    sugar: string
+    ingredients(array, ingredients in the meal): string
+---
+
+Analyze this image of a meal: {{media type="mimeType" data="imageData"}}, and estimate the nutritional content.
+Return the result in JSON format matching the schema:
+- protein, fat, carbs, sugar (strings with units, e.g., '20g')
+- ingredients (list of strings)
