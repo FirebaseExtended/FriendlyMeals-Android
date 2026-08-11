@@ -1,0 +1,30 @@
+---
+model: "gemini-3.5-flash-lite"
+input:
+  schema:
+    ingredients: "string, the ingredients list"
+    notes?: "string, cuisine and dietary notes"
+output:
+  format: json
+  schema:
+    title: string
+    instructions: string
+    ingredients(array, ingredients for recipe): string
+    prepTime: string
+    cookTime: string
+    servings: string
+    tags(array, relevant tags for recipe): string
+---
+
+{{role "user"}}
+Create a detailed recipe based on these ingredients: {{ingredients}}.
+        
+Format requirements:
+ - 'instructions': Provide the cooking steps as a clear list of instructions separated by newlines. Use bold formatting on the step numbers. Use Markdown.
+ - 'ingredients': List all necessary items, including quantities.
+ - 'prepTime', 'cookTime', 'servings': Short strings (e.g., "15 mins").
+ - 'tags': Generate a list of 3-5 relevant category tags (e.g., "Healthy", "Vegan", "Gluten-Free", "Dessert", "Quick").
+
+{{#if notes}}
+IMPORTANT CUISINE AND DIETARY NOTES: {{notes}}
+{{/if}}

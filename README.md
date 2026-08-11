@@ -50,6 +50,12 @@ Welcome to **FriendlyMeals**, an app that demonstrates how to integrate Firebase
      - Go to the [**App Check**](https://console.firebase.google.com/project/_/appcheck/?useAutoProject=true) section of the console, enable this service, and register your Android app using the Play Integrity provider (you'll need to provide the SHA-256 fingerprint of your app's signing certificate).
      - Go to the [**Remote Config**](https://console.firebase.google.com/project/_/config/?useAutoProject=true) section of the console and enable this service.
      - Go to the [**Firebase Storage**](https://console.firebase.google.com/project/_/storage/?useAutoProject=true) section of the console and enable this service (you'll need to set up a billing account since this service is only available on the Blaze plan).
+  
+1. **Create Firebase AI Logic Prompt Templates**
+     - If you're not familiar with Prompt templates, take a look at the [documentation](https://firebase.google.com/docs/ai-logic/server-prompt-templates/get-started) to learn more about it.
+     - Go to the [AI services > AI Logic > Prompt templates tab](https://console.firebase.google.com/project/_/ailogic/templates/?useAutoProject=true).
+     - Create one prompt template for each one of the four templates in the [prompts folder](https://github.com/FirebaseExtended/FriendlyMeals-Android/tree/main/prompts). Please note that the model names below might not be the most up to date ones. [Refer to the documentation](https://firebase.google.com/docs/ai-logic/models) to check the latest available models.
+     - Don't forget to test each one of your templates in the Firebase console before you use them in your apps. [Read the docs](https://firebase.google.com/docs/ai-logic/server-prompt-templates/get-started?api=dev#test-template) to learn how to test your templates properly.
 
 1. **Run the app**
    - Build and run in Android Studio on an Android emulator or physical device.

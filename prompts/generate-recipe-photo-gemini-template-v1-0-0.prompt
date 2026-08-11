@@ -1,0 +1,9 @@
+---
+model: "gemini-3.1-flash-image"
+input:
+  schema:
+    recipeTitle: "string"
+---
+
+A professional food photography shot of this recipe: {{recipeTitle}}. 
+Style: High-end food photography, restaurant-quality plating, soft natural lighting, on a clean background, showing the complete plated dish.
