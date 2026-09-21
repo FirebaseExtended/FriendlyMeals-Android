@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
@@ -82,7 +83,8 @@ fun RecipeScreen(
             viewModel.addIngredientsToGroceryList(recipeViewState.value.recipe.ingredients) {
                 Toast.makeText(context, groceryListToast, Toast.LENGTH_SHORT).show()
             }
-        }
+        },
+        onLearnMoreClick = viewModel::onLearnMoreClick
     )
 }
 
@@ -93,7 +95,8 @@ fun RecipeScreenContent(
     leaveReview: (Int) -> Unit = {},
     recipeViewState: RecipeViewState,
     onLiveAssistantClick: () -> Unit = {},
-    onAddIngredientsToGrocery: () -> Unit = {}
+    onAddIngredientsToGrocery: () -> Unit = {},
+    onLearnMoreClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val multiplePermissionsLauncher = rememberLauncherForActivityResult(
@@ -237,6 +240,13 @@ fun RecipeScreenContent(
                                 )
                             }
                         }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        PairingGuideButton(
+                            audioState = recipeViewState.audioState,
+                            onClick = onLearnMoreClick
+                        )
 
                         Spacer(modifier = Modifier.height(24.dp))
 
@@ -458,6 +468,117 @@ fun IngredientRow(text: String) {
             fontSize = 15.sp,
             color = TextColor
         )
+    }
+}
+
+@Composable
+fun PairingGuideButton(
+    audioState: RecipeAudioState,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val containerColor = when (audioState) {
+        is RecipeAudioState.Playing, is RecipeAudioState.Paused -> Teal
+        is RecipeAudioState.LoadingAudio -> LightTeal
+        is RecipeAudioState.Error -> Color(0xFFFFEBEE)
+        is RecipeAudioState.Idle -> LightTeal
+    }
+
+    val contentColor = when (audioState) {
+        is RecipeAudioState.Playing, is RecipeAudioState.Paused -> Color.White
+        is RecipeAudioState.Error -> Color.Red
+        else -> Teal
+    }
+
+    Button(
+        onClick = onClick,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = containerColor,
+            contentColor = contentColor
+        ),
+        shape = RoundedCornerShape(16.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .height(52.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            when (audioState) {
+                is RecipeAudioState.LoadingAudio -> {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        color = Teal,
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = stringResource(R.string.recipe_pairing_loading_audio),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Teal
+                    )
+                }
+
+                is RecipeAudioState.Playing -> {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_pause),
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = stringResource(R.string.recipe_pairing_playing),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+
+                is RecipeAudioState.Paused -> {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_play_arrow),
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = stringResource(R.string.recipe_pairing_paused),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+
+                is RecipeAudioState.Error -> {
+                    Text(
+                        text = stringResource(R.string.recipe_pairing_retry),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Red
+                    )
+                }
+
+                is RecipeAudioState.Idle -> {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_drink),
+                        contentDescription = null,
+                        tint = Teal,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = stringResource(R.string.recipe_pairing_learn_how),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Teal
+                    )
+                }
+            }
+        }
     }
 }
 

@@ -16,8 +16,13 @@ import com.google.firebase.ai.OnDeviceModelStatus.Companion.DOWNLOADABLE
 import com.google.firebase.ai.OnDeviceModelStatus.Companion.DOWNLOADING
 import com.google.firebase.ai.OnDeviceModelStatus.Companion.UNAVAILABLE
 import com.google.firebase.ai.type.ImagePart
+import com.google.firebase.ai.type.InlineDataPart
 import com.google.firebase.ai.type.PublicPreviewAPI
+import com.google.firebase.ai.type.ResponseModality
+import com.google.firebase.ai.type.SpeechConfig
+import com.google.firebase.ai.type.Voice
 import com.google.firebase.ai.type.content
+import com.google.firebase.ai.type.generationConfig
 import com.google.firebase.example.friendlymeals.data.schema.MealSchema
 import com.google.firebase.example.friendlymeals.data.schema.RecipeSchema
 import com.google.firebase.perf.performance
@@ -152,6 +157,46 @@ class AIRemoteDataSource @Inject constructor(
         }
     }
 
+    suspend fun craftRecipePairing(dishTitle: String, ingredients: List<String>): String {
+        val model = aiModel.generativeModel(
+            modelName = remoteConfig.getString(HYBRID_CLOUD_MODEL_KEY)
+        )
+        val prompt = """
+            Craft a concise, expert pairing recommendation (strictly 2 or 3 sentences) for the dish "$dishTitle" (key ingredients: ${ingredients.joinToString()}).
+            Recommend the ideal drink (such as a specific wine, beer, cocktail, or non-alcoholic beverage) that pairs nicely with this dish, and explain why their flavor profiles and characteristics complement each other.
+            Do not use markdown formatting or bullet points; write in clear conversational prose suitable for being read aloud by a narrator. Keep it strictly to 2 or 3 sentences.
+        """.trimIndent()
+
+        val response = model.generateContent(prompt)
+        return response.text.orEmpty().trim()
+    }
+
+    suspend fun generateSpeech(text: String): ByteArray? {
+        val config = generationConfig {
+            responseModalities = listOf(ResponseModality.AUDIO)
+            speechConfig = SpeechConfig(
+                voice = Voice(TTS_VOICE),
+                languageCode = LANGUAGE_CODE
+            )
+        }
+
+        val model = aiModel.generativeModel(
+            modelName = TTS_MODEL_NAME,
+            generationConfig = config
+        )
+
+        val prompt = """
+            [Audio Profile: A charming, low pitch and professor-like voice]
+            [Scene: An elegant culinary academy classroom during a masterclass on food and beverage pairing]
+            [Director's Notes: Speak as if you're the professor in a classroom on a pairing course, with charming warmth, knowledgeable enthusiasm, and a distinguished professorial cadence]
+            $text
+        """.trimIndent()
+
+        val response = model.generateContent(prompt)
+        val part = response.candidates.firstOrNull()?.content?.parts?.firstOrNull()
+        return (part as? InlineDataPart)?.inlineData
+    }
+
     suspend fun loadOnDeviceModel() {
         when (hybridGenerativeModel.onDeviceExtension?.checkStatus()) {
             UNAVAILABLE -> {
@@ -206,6 +251,11 @@ class AIRemoteDataSource @Inject constructor(
 
         //Grounding with Maps config
         private const val LANGUAGE = "en_US"
+
+        //TTS Config
+        private const val TTS_MODEL_NAME = "gemini-3.1-flash-tts-preview"
+        private const val TTS_VOICE = "Charon"
+        private const val LANGUAGE_CODE = "en-US"
 
         //Class TAG
         private const val TAG = "AIRemoteDataSource"

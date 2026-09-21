@@ -26,6 +26,10 @@ class DatabaseRepository @Inject constructor(
         return databaseRemoteDataSource.getRecipe(recipeId)
     }
 
+    suspend fun updateRecipePairing(recipeId: String, pairing: String) {
+        databaseRemoteDataSource.updateRecipePairing(recipeId, pairing)
+    }
+
     suspend fun getAllRecipes(): List<RecipeListItem> {
         return databaseRemoteDataSource.getAllRecipes()
     }

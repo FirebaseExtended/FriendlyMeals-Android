@@ -58,6 +58,10 @@ class DatabaseRemoteDataSource @Inject constructor(
             .execute().await().results.toRecipe()
     }
 
+    suspend fun updateRecipePairing(recipeId: String, pairing: String) {
+        firestore.collection(RECIPES_COLLECTION).document(recipeId).update(PAIRING_FIELD, pairing).await()
+    }
+
     suspend fun getAllRecipes(): List<RecipeListItem> {
         return firestore
             .pipeline()
@@ -232,7 +236,8 @@ class DatabaseRemoteDataSource @Inject constructor(
             prepTime = itemData[PREP_TIME_FIELD] as? String ?: "",
             cookTime = itemData[COOK_TIME_FIELD] as? String ?: "",
             servings = itemData[SERVINGS_FIELD] as? String ?: "",
-            imageUri = itemData[IMAGE_URI_FIELD] as? String
+            imageUri = itemData[IMAGE_URI_FIELD] as? String,
+            pairing = itemData[PAIRING_FIELD] as? String
         )
     }
 
@@ -330,6 +335,7 @@ class DatabaseRemoteDataSource @Inject constructor(
         private const val RECIPE_ID_FIELD = "recipeId"
         private const val USER_ID_FIELD = "userId"
         private const val CHECKED_FIELD = "checked"
+        private const val PAIRING_FIELD = "pairing"
 
         //Field aliases
         private const val AVG_RATING_ALIAS = "avg_rating"

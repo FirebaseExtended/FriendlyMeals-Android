@@ -76,4 +76,9 @@
     <string name="store_finder_parking">🅿️ Parking Available</string>
     <string name="store_finder_no_parking">No Parking</string>
     <string name="store_finder_button_content_description">Store Finder</string>
+    <string name="recipe_pairing_learn_how">Learn how to pair this dish with a drink</string>
+    <string name="recipe_pairing_loading_audio">Loading audio…</string>
+    <string name="recipe_pairing_playing">Playing pairing guide • Tap to pause</string>
+    <string name="recipe_pairing_paused">Paused • Tap to resume</string>
+    <string name="recipe_pairing_retry">Error playing audio • Tap to retry</string>
 </resources>
