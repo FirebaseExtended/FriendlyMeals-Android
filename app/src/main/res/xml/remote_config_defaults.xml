@@ -4,6 +4,18 @@
         <value>find-stores-template-v1-0-0</value>
     </entry>
     <entry>
+        <key>recipe_pairing</key>
+        <value>recipe-pairing-v1-0-0</value>
+    </entry>
+    <entry>
+        <key>recipe_pairing_voice_profile</key>
+        <value>[Audio Profile: A French chef with a charming French accent][Scene: An elegant Parisian restaurant during a masterclass on food and wine pairing][Director's Notes: Speak as if you're a French chef who is an expert in pairing dishes with wines. Speak with warm enthusiasm and culinary sophistication]</value>
+    </entry>
+    <entry>
+        <key>tts_model</key>
+        <value>gemini-3.1-flash-tts-preview</value>
+    </entry>
+    <entry>
         <key>hybrid_cloud_model</key>
         <value>gemini-3.1-flash-lite</value>
     </entry>

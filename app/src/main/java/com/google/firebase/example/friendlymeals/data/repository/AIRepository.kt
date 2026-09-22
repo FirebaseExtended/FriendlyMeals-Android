@@ -42,6 +42,14 @@ class AIRepository @Inject constructor(
         return aiRemoteDataSource.scanMeal(imageData)
     }
 
+    suspend fun craftRecipePairing(dishTitle: String, ingredients: List<String>): String {
+        return aiRemoteDataSource.craftRecipePairing(dishTitle, ingredients)
+    }
+
+    suspend fun generateSpeech(text: String?): ByteArray? {
+        return aiRemoteDataSource.generateSpeech(text)
+    }
+
     suspend fun loadOnDeviceModel() {
         aiRemoteDataSource.loadOnDeviceModel()
     }
