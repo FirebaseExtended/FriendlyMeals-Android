@@ -10,7 +10,7 @@ import com.google.firebase.example.friendlymeals.data.model.Review
 import com.google.firebase.example.friendlymeals.data.repository.AIRepository
 import com.google.firebase.example.friendlymeals.data.repository.AuthRepository
 import com.google.firebase.example.friendlymeals.data.repository.DatabaseRepository
-import com.google.firebase.example.friendlymeals.ui.recipe.audio.PcmAudioPlayer
+import com.google.firebase.example.friendlymeals.ui.shared.AudioComponent
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,7 +27,7 @@ class RecipeViewModel @Inject constructor(
 ) : MainViewModel() {
     private val recipeRoute = savedStateHandle.toRoute<RecipeRoute>()
     private val recipeId: String = recipeRoute.recipeId
-    private val pcmAudioPlayer = PcmAudioPlayer()
+    private val audioComponent = AudioComponent()
     private var cachedAudioData: ByteArray? = null
     private var cachedPairingText: String? = null
     private var pairingGenerationJob: Job? = null
@@ -75,7 +75,6 @@ class RecipeViewModel @Inject constructor(
                     _recipeViewState.value = _recipeViewState.value.copy(
                         recipe = _recipeViewState.value.recipe.copy(pairing = pairing)
                     )
-                    databaseRepository.updateRecipePairing(recipeId, pairing)
 
                     if (isUserWaitingForAudio) {
                         isUserWaitingForAudio = false
@@ -97,13 +96,13 @@ class RecipeViewModel @Inject constructor(
     fun onLearnMoreClick() {
         when (_recipeViewState.value.audioState) {
             is RecipeAudioState.Playing -> {
-                pcmAudioPlayer.pause()
+                audioComponent.pause()
                 _recipeViewState.value = _recipeViewState.value.copy(
                     audioState = RecipeAudioState.Paused
                 )
             }
             is RecipeAudioState.Paused -> {
-                pcmAudioPlayer.resume()
+                audioComponent.resume()
                 _recipeViewState.value = _recipeViewState.value.copy(
                     audioState = RecipeAudioState.Playing
                 )
@@ -132,7 +131,7 @@ class RecipeViewModel @Inject constructor(
     private fun playCachedAudio() {
         val audioData = cachedAudioData ?: return
         _recipeViewState.value = _recipeViewState.value.copy(audioState = RecipeAudioState.Playing)
-        pcmAudioPlayer.play(audioData) {
+        audioComponent.play(audioData) {
             _recipeViewState.value = _recipeViewState.value.copy(audioState = RecipeAudioState.Idle)
         }
     }
@@ -144,7 +143,7 @@ class RecipeViewModel @Inject constructor(
             if (audio != null && audio.isNotEmpty()) {
                 cachedAudioData = audio
                 _recipeViewState.value = _recipeViewState.value.copy(audioState = RecipeAudioState.Playing)
-                pcmAudioPlayer.play(audio) {
+                audioComponent.play(audio) {
                     _recipeViewState.value = _recipeViewState.value.copy(audioState = RecipeAudioState.Idle)
                 }
             } else {
@@ -212,7 +211,7 @@ class RecipeViewModel @Inject constructor(
     }
 
     override fun onCleared() {
-        pcmAudioPlayer.release()
+        audioComponent.release()
         super.onCleared()
     }
 }

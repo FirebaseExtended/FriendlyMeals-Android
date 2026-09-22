@@ -1,4 +1,4 @@
-package com.google.firebase.example.friendlymeals.ui.recipe.audio
+package com.google.firebase.example.friendlymeals.ui.shared
 
 import android.media.AudioAttributes
 import android.media.AudioFormat
@@ -7,15 +7,15 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 
-class PcmAudioPlayer {
+class AudioComponent {
     private var audioTrack: AudioTrack? = null
     private val mainHandler = Handler(Looper.getMainLooper())
     private var isPaused = false
 
-    fun play(pcmData: ByteArray, onCompletion: () -> Unit) {
+    fun play(data: ByteArray, onCompletion: () -> Unit) {
         stop()
 
-        if (pcmData.isEmpty()) {
+        if (data.isEmpty()) {
             onCompletion()
             return
         }
@@ -24,8 +24,8 @@ class PcmAudioPlayer {
             val sampleRate = 24000
             val channelConfig = AudioFormat.CHANNEL_OUT_MONO
             val audioFormat = AudioFormat.ENCODING_PCM_16BIT
-            val frameSize = 2 // 16-bit mono = 2 bytes per frame
-            val frameCount = pcmData.size / frameSize
+            val frameSize = 2
+            val frameCount = data.size / frameSize
 
             val track = AudioTrack.Builder()
                 .setAudioAttributes(
@@ -41,7 +41,7 @@ class PcmAudioPlayer {
                         .setChannelMask(channelConfig)
                         .build()
                 )
-                .setBufferSizeInBytes(pcmData.size)
+                .setBufferSizeInBytes(data.size)
                 .setTransferMode(AudioTrack.MODE_STATIC)
                 .build()
 
@@ -57,7 +57,7 @@ class PcmAudioPlayer {
 
             track.notificationMarkerPosition = frameCount
 
-            track.write(pcmData, 0, pcmData.size)
+            track.write(data, 0, data.size)
             track.play()
             audioTrack = track
             isPaused = false
@@ -105,19 +105,11 @@ class PcmAudioPlayer {
         }
     }
 
-    fun isPlaying(): Boolean {
-        return audioTrack?.playState == AudioTrack.PLAYSTATE_PLAYING
-    }
-
-    fun isPaused(): Boolean {
-        return isPaused
-    }
-
     fun release() {
         stop()
     }
 
     companion object {
-        private const val TAG = "PcmAudioPlayer"
+        private const val TAG = "AudioComponent"
     }
 }

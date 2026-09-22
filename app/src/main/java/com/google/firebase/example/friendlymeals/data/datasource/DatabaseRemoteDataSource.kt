@@ -58,10 +58,6 @@ class DatabaseRemoteDataSource @Inject constructor(
             .execute().await().results.toRecipe()
     }
 
-    suspend fun updateRecipePairing(recipeId: String, pairing: String) {
-        firestore.collection(RECIPES_COLLECTION).document(recipeId).update(PAIRING_FIELD, pairing).await()
-    }
-
     suspend fun getAllRecipes(): List<RecipeListItem> {
         return firestore
             .pipeline()

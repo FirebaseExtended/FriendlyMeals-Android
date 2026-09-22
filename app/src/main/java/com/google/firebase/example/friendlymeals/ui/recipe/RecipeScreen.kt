@@ -84,7 +84,7 @@ fun RecipeScreen(
                 Toast.makeText(context, groceryListToast, Toast.LENGTH_SHORT).show()
             }
         },
-        onLearnMoreClick = viewModel::onLearnMoreClick
+        onPairingClick = viewModel::onPairingClick
     )
 }
 
@@ -96,7 +96,7 @@ fun RecipeScreenContent(
     recipeViewState: RecipeViewState,
     onLiveAssistantClick: () -> Unit = {},
     onAddIngredientsToGrocery: () -> Unit = {},
-    onLearnMoreClick: () -> Unit = {}
+    onPairingClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val multiplePermissionsLauncher = rememberLauncherForActivityResult(
@@ -245,7 +245,7 @@ fun RecipeScreenContent(
 
                         PairingGuideButton(
                             audioState = recipeViewState.audioState,
-                            onClick = onLearnMoreClick
+                            onClick = onPairingClick
                         )
 
                         Spacer(modifier = Modifier.height(24.dp))
