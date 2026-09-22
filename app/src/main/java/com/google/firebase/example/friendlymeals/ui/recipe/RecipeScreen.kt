@@ -571,7 +571,7 @@ fun PairingGuideButton(
                     )
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = stringResource(R.string.recipe_pairing_learn_how),
+                        text = stringResource(R.string.recipe_pairing_french_wine),
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
                         color = Teal
