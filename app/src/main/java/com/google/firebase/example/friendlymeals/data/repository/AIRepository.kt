@@ -46,7 +46,7 @@ class AIRepository @Inject constructor(
         return aiRemoteDataSource.craftRecipePairing(dishTitle, ingredients)
     }
 
-    suspend fun generateSpeech(text: String): ByteArray? {
+    suspend fun generateSpeech(text: String?): ByteArray? {
         return aiRemoteDataSource.generateSpeech(text)
     }
 

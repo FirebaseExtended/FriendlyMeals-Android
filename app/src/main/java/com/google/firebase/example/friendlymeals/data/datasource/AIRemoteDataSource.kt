@@ -162,16 +162,18 @@ class AIRemoteDataSource @Inject constructor(
             modelName = remoteConfig.getString(HYBRID_CLOUD_MODEL_KEY)
         )
         val prompt = """
-            Craft a concise, expert pairing recommendation (strictly 2 or 3 sentences) for the dish "$dishTitle" (key ingredients: ${ingredients.joinToString()}).
-            Recommend the ideal drink (such as a specific wine, beer, cocktail, or non-alcoholic beverage) that pairs nicely with this dish, and explain why their flavor profiles and characteristics complement each other.
-            Do not use markdown formatting or bullet points; write in clear conversational prose suitable for being read aloud by a narrator. Keep it strictly to 2 or 3 sentences.
+            Craft a concise, expert wine pairing recommendation (strictly 2 or 3 sentences) for the dish "$dishTitle" (key ingredients: ${ingredients.joinToString()}).
+            Recommend the ideal French wine that pairs nicely with this dish, and explain why their flavor profiles and characteristics complement each other. It should ALWAYS be paired with a FRENCH WINE.
+            Do not use markdown formatting or bullet points; write in clear conversational prose suitable for being read aloud by a French chef. Keep it strictly to 2 or 3 sentences.
         """.trimIndent()
 
         val response = model.generateContent(prompt)
         return response.text.orEmpty().trim()
     }
 
-    suspend fun generateSpeech(text: String): ByteArray? {
+    suspend fun generateSpeech(text: String?): ByteArray? {
+        if (text.isNullOrBlank()) return null
+
         val config = generationConfig {
             responseModalities = listOf(ResponseModality.AUDIO)
             speechConfig = SpeechConfig(
@@ -186,9 +188,9 @@ class AIRemoteDataSource @Inject constructor(
         )
 
         val prompt = """
-            [Audio Profile: A charming, low pitch and professor-like voice]
-            [Scene: An elegant culinary academy classroom during a masterclass on food and beverage pairing]
-            [Director's Notes: Speak as if you're the professor in a classroom on a pairing course, with charming warmth, knowledgeable enthusiasm, and a distinguished professorial cadence]
+            [Audio Profile: A French chef who is an expert in pairing with wines, with a charming French accent]
+            [Scene: An elegant Parisian restaurant during a masterclass on food and wine pairing]
+            [Director's Notes: Speak as if you're a French chef who is an expert in pairing with wines. It should ALWAYS be paired with a FRENCH WINE. The speaker should have a charming French accent, with warm enthusiasm, culinary sophistication, and flair.]
             $text
         """.trimIndent()
 
