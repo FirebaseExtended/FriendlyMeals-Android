@@ -158,44 +158,35 @@ class AIRemoteDataSource @Inject constructor(
     }
 
     suspend fun craftRecipePairing(dishTitle: String, ingredients: List<String>): String {
-        val model = aiModel.generativeModel(
-            modelName = remoteConfig.getString(HYBRID_CLOUD_MODEL_KEY)
+        val response = templateGenerativeModel.generateContent(
+            templateId = remoteConfig.getString(RECIPE_PAIRING_KEY),
+            inputs = mapOf(
+                RECIPE_TITLE_FIELD to dishTitle,
+                INGREDIENTS_FIELD to ingredients.joinToString()
+            )
         )
-        val prompt = """
-            Craft a concise, expert wine pairing recommendation (strictly 2 or 3 sentences) for the dish "$dishTitle" (key ingredients: ${ingredients.joinToString()}).
-            Recommend the ideal French wine that pairs nicely with this dish, and explain why their flavor profiles and characteristics complement each other. It should ALWAYS be paired with a FRENCH WINE.
-            Do not use markdown formatting or bullet points; write in clear conversational prose suitable for being read aloud by a French chef. Keep it strictly to 2 or 3 sentences.
-        """.trimIndent()
 
-        val response = model.generateContent(prompt)
         return response.text.orEmpty().trim()
     }
 
     suspend fun generateSpeech(text: String?): ByteArray? {
         if (text.isNullOrBlank()) return null
 
-        val config = generationConfig {
-            responseModalities = listOf(ResponseModality.AUDIO)
-            speechConfig = SpeechConfig(
-                voice = Voice(TTS_VOICE),
-                languageCode = LANGUAGE_CODE
-            )
-        }
-
-        val model = aiModel.generativeModel(
-            modelName = TTS_MODEL_NAME,
-            generationConfig = config
+       val model = aiModel.generativeModel(
+            modelName = remoteConfig.getString(TTS_MODEL_KEY),
+            generationConfig = generationConfig {
+                responseModalities = listOf(ResponseModality.AUDIO)
+                speechConfig = SpeechConfig(
+                    voice = Voice(TTS_VOICE),
+                    languageCode = TTS_LANGUAGE
+                )
+            }
         )
 
-        val prompt = """
-            [Audio Profile: A French chef who is an expert in pairing with wines, with a charming French accent]
-            [Scene: An elegant Parisian restaurant during a masterclass on food and wine pairing]
-            [Director's Notes: Speak as if you're a French chef who is an expert in pairing with wines. It should ALWAYS be paired with a FRENCH WINE. The speaker should have a charming French accent, with warm enthusiasm, culinary sophistication, and flair.]
-            $text
-        """.trimIndent()
-
-        val response = model.generateContent(prompt)
+        val voiceProfile = remoteConfig.getString(VOICE_PROFILE_KEY)
+        val response = model.generateContent("$voiceProfile $text")
         val part = response.candidates.firstOrNull()?.content?.parts?.firstOrNull()
+
         return (part as? InlineDataPart)?.inlineData
     }
 
@@ -238,6 +229,9 @@ class AIRemoteDataSource @Inject constructor(
         private const val FIND_STORES_KEY = "find_stores"
         private const val HYBRID_CLOUD_MODEL_KEY = "hybrid_cloud_model"
         private const val HYBRID_INGREDIENTS_PROMPT_KEY = "hybrid_ingredients_prompt"
+        private const val RECIPE_PAIRING_KEY = "recipe_pairing"
+        private const val VOICE_PROFILE_KEY = "recipe_pairing_voice_profile"
+        private const val TTS_MODEL_KEY = "tts_model"
 
         //Template input fields
         private const val IMAGE_DATA_FIELD = "imageData"
@@ -254,10 +248,9 @@ class AIRemoteDataSource @Inject constructor(
         //Grounding with Maps config
         private const val LANGUAGE = "en_US"
 
-        //TTS Config
-        private const val TTS_MODEL_NAME = "gemini-3.1-flash-tts-preview"
+        //TTS config
         private const val TTS_VOICE = "Charon"
-        private const val LANGUAGE_CODE = "en-US"
+        private const val TTS_LANGUAGE = "en-US"
 
         //Class TAG
         private const val TAG = "AIRemoteDataSource"
