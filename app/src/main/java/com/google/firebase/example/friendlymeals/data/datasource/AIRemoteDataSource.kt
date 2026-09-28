@@ -16,8 +16,13 @@ import com.google.firebase.ai.OnDeviceModelStatus.Companion.DOWNLOADABLE
 import com.google.firebase.ai.OnDeviceModelStatus.Companion.DOWNLOADING
 import com.google.firebase.ai.OnDeviceModelStatus.Companion.UNAVAILABLE
 import com.google.firebase.ai.type.ImagePart
+import com.google.firebase.ai.type.InlineDataPart
 import com.google.firebase.ai.type.PublicPreviewAPI
+import com.google.firebase.ai.type.ResponseModality
+import com.google.firebase.ai.type.SpeechConfig
+import com.google.firebase.ai.type.Voice
 import com.google.firebase.ai.type.content
+import com.google.firebase.ai.type.generationConfig
 import com.google.firebase.example.friendlymeals.data.schema.MealSchema
 import com.google.firebase.example.friendlymeals.data.schema.RecipeSchema
 import com.google.firebase.perf.performance
@@ -152,6 +157,39 @@ class AIRemoteDataSource @Inject constructor(
         }
     }
 
+    suspend fun craftRecipePairing(dishTitle: String, ingredients: List<String>): String {
+        val response = templateGenerativeModel.generateContent(
+            templateId = remoteConfig.getString(RECIPE_PAIRING_KEY),
+            inputs = mapOf(
+                RECIPE_TITLE_FIELD to dishTitle,
+                INGREDIENTS_FIELD to ingredients.joinToString()
+            )
+        )
+
+        return response.text.orEmpty().trim()
+    }
+
+    suspend fun generateSpeech(text: String?): ByteArray? {
+        if (text.isNullOrBlank()) return null
+
+       val model = aiModel.generativeModel(
+            modelName = remoteConfig.getString(TTS_MODEL_KEY),
+            generationConfig = generationConfig {
+                responseModalities = listOf(ResponseModality.AUDIO)
+                speechConfig = SpeechConfig(
+                    voice = Voice(TTS_VOICE),
+                    languageCode = TTS_LANGUAGE
+                )
+            }
+        )
+
+        val voiceProfile = remoteConfig.getString(VOICE_PROFILE_KEY)
+        val response = model.generateContent("$voiceProfile $text")
+        val part = response.candidates.firstOrNull()?.content?.parts?.firstOrNull()
+
+        return (part as? InlineDataPart)?.inlineData
+    }
+
     suspend fun loadOnDeviceModel() {
         when (hybridGenerativeModel.onDeviceExtension?.checkStatus()) {
             UNAVAILABLE -> {
@@ -191,6 +229,9 @@ class AIRemoteDataSource @Inject constructor(
         private const val FIND_STORES_KEY = "find_stores"
         private const val HYBRID_CLOUD_MODEL_KEY = "hybrid_cloud_model"
         private const val HYBRID_INGREDIENTS_PROMPT_KEY = "hybrid_ingredients_prompt"
+        private const val RECIPE_PAIRING_KEY = "recipe_pairing"
+        private const val VOICE_PROFILE_KEY = "recipe_pairing_voice_profile"
+        private const val TTS_MODEL_KEY = "tts_model"
 
         //Template input fields
         private const val IMAGE_DATA_FIELD = "imageData"
@@ -206,6 +247,10 @@ class AIRemoteDataSource @Inject constructor(
 
         //Grounding with Maps config
         private const val LANGUAGE = "en_US"
+
+        //TTS config
+        private const val TTS_VOICE = "Charon"
+        private const val TTS_LANGUAGE = "en-US"
 
         //Class TAG
         private const val TAG = "AIRemoteDataSource"
